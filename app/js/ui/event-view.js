@@ -46,6 +46,11 @@ export function createEventView(ctx) {
             <dt>Key info</dt><dd>${esc((cols?.keyInfo || []).join(', ') || '—')}</dd>
             <dt>Buses</dt><dd>${store.buses.length} · ${esc(describeConfig(store.template))} template</dd>
           </dl>
+          ${cols ? `<label class="field mt-16"><span class="field-label">Phone column <small class="subtle">(shown in the Seating tab)</small></span>
+            <select class="select" data-k="phone" data-testid="ev-phone">
+              <option value="" ${store.phoneColumn() ? '' : 'selected'}>— None —</option>
+              ${(cols.headers || []).filter((hd) => hd !== cols.name && hd !== cols.id).map((hd) => `<option value="${esc(hd)}" ${hd === store.phoneColumn() ? 'selected' : ''}>${esc(hd)}</option>`).join('')}
+            </select></label>` : ''}
           <div class="row-wrap mt-16">
             <button class="btn btn-primary" type="button" data-act="import" data-testid="ev-import">${icon('upload')}<span>Import list</span></button>
           </div>
@@ -86,7 +91,7 @@ export function createEventView(ctx) {
             <div class="segmented" data-k="theme" role="group" aria-label="Theme">
               ${[['auto', 'monitor', 'Auto'], ['light', 'sun', 'Light'], ['dark', 'moon', 'Dark']].map(([v, ic, l]) => `<button type="button" data-theme-opt="${v}" aria-pressed="${store.settings.theme === v}">${icon(ic)}${l}</button>`).join('')}
             </div>
-            <label class="switch" data-testid="mask-toggle"><input type="checkbox" data-k="mask" ${store.settings.maskIds ? 'checked' : ''}><span class="track"></span><span>Mask IDs on screen (e.g. AD••••••)</span></label>
+            <label class="switch" data-testid="mask-toggle"><input type="checkbox" data-k="mask" ${store.settings.maskIds ? 'checked' : ''}><span class="track"></span><span>Mask IDs and phone numbers on screen (e.g. AD••••••, 012-••• ••00)</span></label>
           </div>
         </div>
 
@@ -127,6 +132,10 @@ export function createEventView(ctx) {
       if (b) store.setSetting('theme', b.dataset.themeOpt);
     });
     el.querySelector('[data-k=mask]').addEventListener('change', (e) => store.setSetting('maskIds', e.target.checked));
+    el.querySelector('[data-k=phone]')?.addEventListener('change', async (e) => {
+      await store.setPhoneColumn(e.target.value);
+      toast(e.target.value ? `Phone numbers from “${e.target.value}”` : 'Phone numbers hidden');
+    });
     el.querySelector('[data-testid=event-list]').addEventListener('click', async (e) => {
       const open = e.target.closest('[data-open]');
       const del = e.target.closest('[data-delete]');

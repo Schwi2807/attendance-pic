@@ -10,7 +10,7 @@ import { h, esc, debounce } from './dom.js';
 import { icon } from './icons.js';
 import { openOverlay, toast, choiceDialog, actionsRow } from './dialogs.js';
 import { initials, norm, plural } from '../utils/format.js';
-import { maskId } from '../utils/mask.js';
+import { maskId, maskPhone } from '../utils/mask.js';
 import { SEAT_TYPE_NAMES } from '../domain/model.js';
 
 const TYPE_ICONS = { available: 'check', unavailable: 'ban', reserved: 'bookmark', vip: 'crown' };
@@ -22,6 +22,23 @@ export function installSeatInteractions(view) {
   let panelQuery = '';
 
   const showId = (p) => (store.settings.maskIds ? maskId(p.studentId) : p.studentId);
+  const showPhone = (p) => {
+    const ph = store.phoneOf(p);
+    return ph && store.settings.maskIds ? maskPhone(ph) : ph;
+  };
+  /** Phone number as a tap-to-call link (plain text while masked). */
+  const phoneLink = (p) => {
+    const ph = store.phoneOf(p);
+    if (!ph) return '';
+    if (store.settings.maskIds) return `<span class="phone-chip" data-testid="sheet-phone">${icon('phone')}${esc(maskPhone(ph))}</span>`;
+    const tel = ph.replace(/[^\d+]/g, '');
+    return `<a class="phone-chip" href="tel:${esc(tel)}" data-testid="sheet-phone">${icon('phone')}${esc(ph)}</a>`;
+  };
+  // Search matches name, ID and phone (digits only, so "0125551000" finds "012-555 1000").
+  const haystack = (p) => {
+    const ph = store.phoneOf(p);
+    return `${norm(`${p.name} ${p.studentId} ${ph}`)} ${ph.replace(/\D/g, '')}`;
+  };
   const seatInfo = (seatId) => store.seatIndex.get(seatId);
   const seatName = (seatId) => {
     const i = seatInfo(seatId);
@@ -57,7 +74,7 @@ export function installSeatInteractions(view) {
     panel.innerHTML = `
       <div class="seat-panel-head">
         <h3>${icon('users')} Participants <span class="badge" data-testid="unseated-count"></span></h3>
-        <label class="search">${icon('search')}<input type="search" placeholder="Search name or ID" data-testid="panel-search" autocomplete="off" spellcheck="false"></label>
+        <label class="search">${icon('search')}<input type="search" placeholder="Search name, ID or phone" data-testid="panel-search" autocomplete="off" spellcheck="false"></label>
       </div>
       <ul class="panel-list" data-testid="panel-list"></ul>`;
     panelRefs = { list: panel.querySelector('.panel-list'), search: panel.querySelector('input'), count: panel.querySelector('[data-testid=unseated-count]'), panel };
@@ -90,13 +107,16 @@ export function installSeatInteractions(view) {
     const st = statusOf(p.id);
     return `<li><button type="button" class="person ${ui.selectedPid === p.id ? 'is-selected' : ''} ${st === 'present' ? 'is-present' : st === 'absent' ? 'is-absent' : ''}" data-pid="${p.id}" data-testid="person">
       <span class="avatar">${esc(initials(p.name))}<span class="tick">${icon('check')}</span></span>
-      <span class="p-main"><span class="p-name">${esc(p.name)}</span><span class="p-sub"><span class="mono">${esc(showId(p))}</span>${seat ? `<span class="seat-tag">${esc(seat.bus)} · ${esc(seat.label)}</span>` : ''}</span></span>
+      <span class="p-main"><span class="p-name">${esc(p.name)}</span><span class="p-sub"><span class="mono" data-testid="person-id">${esc(showId(p))}</span>${(() => {
+        const ph = showPhone(p);
+        return ph ? `<span class="p-phone mono" data-testid="person-phone">${icon('phone')}${esc(ph)}</span>` : '';
+      })()}${seat ? `<span class="seat-tag">${esc(seat.bus)} · ${esc(seat.label)}</span>` : ''}</span></span>
     </button></li>`;
   }
 
   function renderPanelList() {
     if (!panelRefs || !panelRefs.list.isConnected) return;
-    const match = (p) => !panelQuery || norm(`${p.name} ${p.studentId}`).includes(panelQuery);
+    const match = (p) => !panelQuery || haystack(p).includes(panelQuery);
     const unseated = store.participants.filter((p) => !store.seatOf.has(p.id));
     const seated = store.participants.filter((p) => store.seatOf.has(p.id));
     panelRefs.count.textContent = `${unseated.length} unseated`;
@@ -261,7 +281,7 @@ export function installSeatInteractions(view) {
       const typeBadge = type === 'available' ? '' : `<span class="badge ${type === 'vip' ? 'badge--vip' : type === 'reserved' ? 'badge--violet' : ''}">${icon(TYPE_ICONS[type])}${SEAT_TYPE_NAMES[type]}${t?.label ? ` · ${esc(t.label)}` : ''}</span>`;
       let html = `<div class="seat-sheet-head"><span class="seat-big ${bigCls}">${esc(info.seat.label)}</span><div class="grow">`;
       if (p) {
-        html += `<strong data-testid="sheet-name">${esc(p.name)}</strong><div class="row-wrap mt-8"><span class="mono subtle">${esc(showId(p))}</span>
+        html += `<strong data-testid="sheet-name">${esc(p.name)}</strong><div class="row-wrap mt-8"><span class="mono subtle">${esc(showId(p))}</span>${phoneLink(p)}
           <span class="badge ${st === 'present' ? 'badge--green' : st === 'absent' ? 'badge--red' : ''}" data-testid="sheet-status">${st ? st[0].toUpperCase() + st.slice(1) : 'Unmarked'}</span>${typeBadge}</div>`;
       } else {
         html += `<strong>${type === 'available' ? 'Empty seat' : SEAT_TYPE_NAMES[type] + ' seat'}</strong><div class="row-wrap mt-8">${typeBadge || '<span class="badge badge--green">Available</span>'}</div>`;
@@ -283,7 +303,7 @@ export function installSeatInteractions(view) {
           <button class="btn btn-secondary" type="button" data-a="unlock">${icon('unlock')}<span>Unlock admin</span></button>`;
       } else {
         html += `<div class="section-label">Assign someone</div>
-          <label class="search">${icon('search')}<input type="search" placeholder="Search name or ID" data-testid="picker-search" autocomplete="off" spellcheck="false"></label>
+          <label class="search">${icon('search')}<input type="search" placeholder="Search name, ID or phone" data-testid="picker-search" autocomplete="off" spellcheck="false"></label>
           <ul class="picker-list" data-testid="picker-list"></ul>`;
       }
 
@@ -300,7 +320,7 @@ export function installSeatInteractions(view) {
         const fill = () => {
           const q = norm(input.value);
           const list = store.participants
-            .filter((x) => !q || norm(`${x.name} ${x.studentId}`).includes(q))
+            .filter((x) => !q || haystack(x).includes(q))
             .sort((a, b) => Number(store.seatOf.has(a.id)) - Number(store.seatOf.has(b.id)) || a.order - b.order)
             .slice(0, 80);
           picker.innerHTML = list.map(personButton).join('') || '<li class="subtle">No match</li>';

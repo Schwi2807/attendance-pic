@@ -109,6 +109,7 @@ export function openImport(ctx, { file } = {}) {
           ${sheetSel}
           <label class="field"><span class="field-label">Name column *</span><select class="select" data-k="name" data-testid="map-name">${opt(mapping.name)}</select></label>
           <label class="field"><span class="field-label">ID / matric no. column *</span><select class="select" data-k="id" data-testid="map-id">${opt(mapping.id)}</select></label>
+          <label class="field"><span class="field-label">Phone column (optional)</span><select class="select" data-k="phone" data-testid="map-phone"><option value="" ${mapping.phone ? '' : 'selected'}>— None —</option>${opt(mapping.phone)}</select></label>
         </div>
         <div class="field">
           <span class="field-label">Key info shown on each row (optional)</span>
@@ -149,7 +150,7 @@ export function openImport(ctx, { file } = {}) {
       buildTable(true);
       stepMap();
     });
-    for (const k of ['name', 'id']) {
+    for (const k of ['name', 'id', 'phone']) {
       body.querySelector(`[data-k=${k}]`).addEventListener('change', (e) => {
         st.mapping[k] = e.target.value;
         st.mapping.keyInfo = st.mapping.keyInfo.filter((c) => c !== e.target.value);

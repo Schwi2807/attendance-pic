@@ -11,7 +11,7 @@ import { createEvent, createBus, emptyAttendance, STATUS, SCHEMA_VERSION } from 
 import { enumerateSeats, normalizeConfig, nextBusName, parseSeatId } from './domain/layout.js';
 import { planAutoBuses, busStats } from './domain/capacity.js';
 import { hhmm, norm } from './utils/format.js';
-import { buildParticipants } from './io/importer.js';
+import { buildParticipants, guessPhoneColumn } from './io/importer.js';
 import { BACKUP_FORMAT } from './repo/errors.js';
 
 const UNDO_LIMIT = 50;
@@ -727,6 +727,28 @@ export class Store extends EventTarget {
     if (!seatId) return null;
     const info = this.seatIndex.get(seatId);
     return info ? { seatId, label: info.seat.label, bus: info.bus.name, busId: info.bus.id, order: info.bus.order * 10000 + info.seat.index } : null;
+  }
+
+  // ── phone numbers ─────────────────────────────────────────────────────────
+  /**
+   * The column holding phone numbers ('' = none). Events imported before the
+   * phone mapping existed fall back to a guess from their headers.
+   */
+  phoneColumn() {
+    const cols = this.event?.columns;
+    if (!cols) return '';
+    if (typeof cols.phone === 'string') return cols.phone;
+    return guessPhoneColumn(cols.headers || [], [cols.name, cols.id, ...Object.values(cols.reused || {})].filter(Boolean));
+  }
+
+  phoneOf(p) {
+    const col = this.phoneColumn();
+    return col ? String(p?.original?.[col] ?? '').trim() : '';
+  }
+
+  async setPhoneColumn(col) {
+    if (!this.event?.columns) return;
+    await this.updateEvent({ columns: { ...this.event.columns, phone: col || '' } });
   }
 
   // ── backup ────────────────────────────────────────────────────────────────

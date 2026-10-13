@@ -20,7 +20,7 @@ Run in this environment: `npx playwright test` — **Chromium**, `iPad Pro 11 la
 (1194 × 834, touch, mobile), app served under `/attendance-pic/` like GitHub Pages.
 
 ```
-Running 53 tests using 4 workers (Chromium, iPad Pro 11 landscape)
+Running 57 tests using 4 workers (Chromium, iPad Pro 11 landscape)
 
   ✓ admin.spec.js           4 passed
   ✓ attendance.spec.js     10 passed
@@ -29,12 +29,12 @@ Running 53 tests using 4 workers (Chromium, iPad Pro 11 landscape)
   ✓ import.spec.js          5 passed
   ✓ offline.spec.js         4 passed
   ✓ persistence.spec.js     1 passed
+  ✓ phone.spec.js           4 passed
   ✓ precache.spec.js        1 passed
   ✓ privacy.spec.js         1 passed
   ✓ seating.spec.js         6 passed
 
-  53 passed (2.4m) — 0 failed, 0 flaky
-  (an extra --repeat-each=2 run: 103/104 passed; the one flaky toast assertion was fixed and re-verified 12/12)
+  57 passed — 0 failed, 0 flaky
 ```
 
 Coverage of the brief's quality list:
@@ -58,7 +58,7 @@ Coverage of the brief's quality list:
 | no off-origin network requests | `privacy.spec.js` + an auto fixture on **every** test (records, aborts and fails on any off-origin request, CSP violation or page error) |
 | offline | `offline.spec.js` (every file in the SW cache — both browsers; offline reload + offline PDF export — Chromium), manifest, CSP; `precache.spec.js` |
 
-**GitHub Actions (final run on `main`, commit `60a28ef`):**
+**GitHub Actions** (last run before the phone-number tests were added):
 
 | Job | Result | Time |
 |---|---|---|
@@ -89,19 +89,25 @@ rendered and inspected.
 - One attendance session per event in the UI (model supports more). Undo history is in memory only.
 - Web Share with files depends on the browser (iPad Safari: yes; desktop Chromium on Linux: falls back to download).
 - Service-worker updates apply after tapping **Reload** on the update toast (or after all app windows close).
-- The repository's default branch is still the session branch (`claude/gallant-euler-p8tdrn`); switch it to
-  `main` (TODO list). Deploys from `main` already work.
+
+## After v1.0: phone numbers in the Seating tab
+
+The importer detects a phone column (`Phone`, `Tel`, `No. Tel`, `H/P`, `Mobile`, …; changeable in the import
+wizard and later in *Event → Participant list → Phone column*). The Seating tab shows the number next to the
+ID in the participants panel and the seat picker, the seat sheet shows it as a tap-to-call link, search matches
+phone digits, and *Mask IDs and phone numbers on screen* masks it (`012-••• ••00`). Exports already contained
+the phone column as one of the original columns.
 
 ## Deployment
 
-PR [#1](https://github.com/Schwi2807/attendance-pic/pull/1) was merged into `main`; the *Deploy to GitHub
-Pages* workflow succeeded. **Live app: https://schwi2807.github.io/attendance-pic/**
+`main` is the deployment branch. **Live app: https://schwi2807.github.io/attendance-pic/** (once Pages is on —
+see the TODO list).
 
 ## What you need to do next
 
 See **[`docs/OWNER_TODO.md`](OWNER_TODO.md)**. In short:
 
-1. **Settings → General → Default branch → `main`** (recommended; deploys already work).
+1. **Settings → Pages → Source: GitHub Actions**, then **Actions → Deploy to GitHub Pages → Run workflow**.
 2. On the iPad: open the link in **Safari → Share → Add to Home Screen**, open it **from the icon** once
    online, wait for *“Ready to work offline”*, create your PIN, try the sample data, then test airplane mode.
 3. Keep the repository **public** (a private repo on the free plan unpublishes the site).

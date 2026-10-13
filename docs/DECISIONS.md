@@ -68,6 +68,7 @@ reasoning, so it can be revisited later.
 | S8 | Admin UI elements are **hidden while locked**; actions that need admin (e.g. "Buses", reset, delete event) prompt for the PIN. The top bar shows an amber **ADMIN** pill with the auto-lock countdown and a striped amber line. | Non-admins are not confronted with controls they cannot use, yet admin actions remain discoverable. |
 | S9 | Wrong PIN 5× → 30 s cool-down. **Forgot PIN** = erase all app data on this device (after typing ERASE); backups can be restored afterwards. | A local-only PIN cannot be recovered; erasing keeps the data protected. |
 | S10 | The PIN is stored as a salted SHA-256 hash; PIN length is stored so the pad can auto-submit. | Convenience; the PIN is a guard-rail, not a security boundary. |
+| S11 | **Phone numbers** come from an optional, auto-detected phone column (stored as `event.columns.phone`; events imported earlier fall back to a guess from their headers) and are read from the participant's original row, so nothing is duplicated. Shown in the Seating panel, seat picker and seat sheet (tap-to-call `tel:` link); search matches digits only; masked by the same privacy switch as IDs (`maskPhone()` lives next to `maskId()`). | Requested after v1.0: the PIC needs to call people who have not boarded. |
 
 ## Export
 

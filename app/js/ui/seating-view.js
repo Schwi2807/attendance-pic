@@ -259,6 +259,7 @@ export function createSeatingView(ctx) {
     else if (d.type === 'event') {
       const cap = el.querySelector('.cap-summary');
       if (cap) cap.outerHTML = capacityBlock();
+      api.hooks.onDataChange?.(d); // e.g. the phone column changed
     }
   };
   api.onAdminChange = () => {

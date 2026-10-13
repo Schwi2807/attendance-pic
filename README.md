@@ -38,7 +38,7 @@ storage.
 | **📥 Import anything** | `.xlsx`, `.csv`, `.txt` (comma, tab or semicolon detected automatically). Preview, pick the **Name** and **ID** columns, choose key info to show. Existing `Present` / `Seat` / `Remarks` columns are reused. Duplicate IDs and empty rows are flagged. |
 | **✅ Fast attendance** | Big **Present / Absent** buttons, automatic `HH:MM` check-in time, remarks, sticky search (name, ID or seat), filters (All · Unmarked · Present · Absent · Unseated), sorting, live counters, **undo**. |
 | **🚌 Real bus layouts** | Top-down coach with nose, windscreen, driver, steering wheel, door, aisle and rear. Layouts **2-2, 2-3, 1-2, 1-3**, any number of rows, optional **back bench**, **double-decker** (L/U seats, stairs on both decks), flip the facing direction. |
-| **🪑 Tap-tap seating** | Tap a person then a seat — or tap a seat and pick a person. Move, swap, unassign, mark present/absent from the seat. **Auto-fill** front to back, lower deck first, never moving anyone already seated. |
+| **🪑 Tap-tap seating** | Tap a person then a seat — or tap a seat and pick a person. Move, swap, unassign, mark present/absent from the seat. **Auto-fill** front to back, lower deck first, never moving anyone already seated. The participants panel shows each person's **ID and phone number**; the seat sheet has a **tap-to-call** link. |
 | **🔢 Automatic bus count** | Adds buses until everyone fits (usable = total − unavailable − reserved − VIP). Warns before removing a bus or seats that hold passengers. |
 | **🔐 Admin mode** | PIN set on first launch, auto-lock after 5 minutes idle. Only admins mark seats **Unavailable / Reserved / VIP** (with labels such as “Dr. Ahmad”), edit layouts, add/remove/rename buses, reset or restore. |
 | **📤 Exports** | **Excel** (absent rows shaded `#FDE2E2`), **CSV**, **PDF** (A4, event header, counts, repeated table header, page numbers, optional **seat maps** — one page per deck) and a **JSON backup**. Shared through the iPad share sheet (AirDrop, Mail, Files…) or downloaded. |
@@ -115,12 +115,13 @@ For this repository that is **https://schwi2807.github.io/attendance-pic/**.
   The Playwright suite fails if *any* request goes to another origin or if the CSP is violated.
 - **Admin PIN** is stored as a salted SHA-256 hash. It is a guard-rail against accidental edits on a shared iPad, not encryption.
 - **Exports** are created on the device and handed to the iPad share sheet or Downloads. Where they go next is up to you.
-- **IDs on screen** can be masked (`AD••••••`) in *Event → Display*.
+- **IDs and phone numbers on screen** can be masked (`AD••••••`, `012-••• ••00`) in *Event → Display*.
 
 ## Data formats
 
 **Import** — any table with a header row. The importer guesses columns such as `Name` / `Nama` and
-`Matric No` / `No. Matrik` / `Student ID`; you can change the mapping. Recognised and reused:
+`Matric No` / `No. Matrik` / `Student ID`, plus an optional **phone** column (`Phone`, `Tel`, `No. Tel`, `H/P`,
+`Mobile` …); you can change the mapping (the phone column also later, in the Event tab). Recognised and reused:
 `Present` (Present/Yes/Hadir/1 → present, Absent/No/0 → absent), `Seat`, `Remarks`, plus `Bus` and
 `Check-in Time` (so an exported file can be imported again).
 
@@ -153,10 +154,11 @@ Helper scripts:
 | `npm run icons` | Renders the PWA icons from the SVG logo. |
 | `npm run screenshots` | Regenerates the README screenshots with fake data. |
 
-**Tests** (`tests/*.spec.js`, 53 cases) cover import of all formats, delimiter detection, warnings,
+**Tests** (`tests/*.spec.js`, 57 cases) cover import of all formats, delimiter detection, warnings,
 marking/undo/filters/search/sort, auto bus count (60 people → 2 buses), every layout (2-2, 2-3, 1-2, 1-3),
 back bench, double-decker, flip, admin PIN lock/unlock/auto-lock/change, seat types changing capacity and
-bus count, non-admins blocked from seat types, assign/move/swap/unassign, auto-fill, reload persistence,
+bus count, non-admins blocked from seat types, assign/move/swap/unassign, auto-fill, phone numbers in the
+Seating tab (search, tap-to-call, masking), reload persistence,
 XLSX/CSV/PDF (with and without seat maps)/JSON exports and restore, offline use via the service worker,
 the CSP, and **zero off-origin requests**.
 

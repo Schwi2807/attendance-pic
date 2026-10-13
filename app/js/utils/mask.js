@@ -16,3 +16,19 @@ export function maskId(id) {
   const keep = prefix.length || Math.min(2, Math.max(0, s.length - 4));
   return s.slice(0, keep) + MASK_CHAR.repeat(Math.max(s.length - keep, 1));
 }
+
+/**
+ * Phone numbers under the same privacy setting: keep the first 3 and the
+ * last 2 digits, mask the rest, keep spaces/dashes ("012-555 1000" →
+ * "012-••• ••00").
+ */
+export function maskPhone(phone) {
+  const s = String(phone ?? '').trim();
+  const digits = s.replace(/\D/g, '').length;
+  if (!digits) return s;
+  let seen = 0;
+  return s.replace(/\d/g, (d) => {
+    seen++;
+    return seen <= 3 || seen > digits - 2 ? d : MASK_CHAR;
+  });
+}

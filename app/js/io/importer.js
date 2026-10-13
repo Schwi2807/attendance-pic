@@ -23,7 +23,18 @@ const PATTERNS = {
   remarks: [/^(remarks?|notes?|catatan|comments?)$/i],
   bus: [/^bus(\s*(no\.?|name|number))?$/i, /^bas$/i],
   time: [/^check[\s-]?in(\s*time)?$/i, /^(time|masa)$/i],
+  phone: [
+    /^(phone|tel|telephone|mobile|hp|h\/p|handphone|contact)(\s*(no\.?|number|num))?$/i,
+    /^no\.?\s*(tel|telefon|hp|h\/p|phone|handphone)$/i,
+    /^(nombor|no\.?)\s*telefon(\s*bimbit)?$/i,
+    /phone|telefon|mobile|handphone|\btel\b|\bh\/p\b/i,
+  ],
 };
+
+/** Best guess for the phone-number column ('' if none). */
+export function guessPhoneColumn(headers, exclude = []) {
+  return guess(headers, 'phone', exclude);
+}
 
 function guess(headers, kind, exclude = []) {
   for (const re of PATTERNS[kind]) {
@@ -54,9 +65,10 @@ export function guessMapping(headers, records = []) {
         return vals.length && vals.filter((v) => /^[A-Za-z]{0,4}\d{4,}[A-Za-z0-9]*$/.test(v)).length / vals.length > 0.8;
       }) || '';
   }
-  const skip = new Set([name, id, ...taken, ...headers.filter((h) => /^(no\.?|bil\.?|#|num)$/i.test(h))]);
+  const phone = guess(headers, 'phone', [...taken, name, id]);
+  const skip = new Set([name, id, phone, ...taken, ...headers.filter((h) => /^(no\.?|bil\.?|#|num)$/i.test(h))]);
   const keyInfo = headers.filter((h) => h && !skip.has(h)).slice(0, 2);
-  return { name, id, keyInfo, reused };
+  return { name, id, phone, keyInfo, reused };
 }
 
 const PRESENT_RE = /^(present|p|yes|y|1|true|hadir|✓|✔|☑)$/i;
@@ -151,6 +163,7 @@ export function buildParticipants(table, mapping, eventId, sessionId) {
     headers: [...table.headers],
     name: mapping.name,
     id: mapping.id,
+    phone: mapping.phone || '',
     keyInfo: [...(mapping.keyInfo || [])],
     reused: { present: r.present || '', seat: r.seat || '', remarks: r.remarks || '', bus: r.bus || '', time: r.time || '' },
   };

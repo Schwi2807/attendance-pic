@@ -8,6 +8,7 @@ test.describe('Import', () => {
     await expect(page.getByTestId('import-count')).toHaveText('60 participants');
     await expect(page.getByTestId('map-name')).toHaveValue('Name');
     await expect(page.getByTestId('map-id')).toHaveValue('Matric No');
+    await expect(page.getByTestId('map-phone')).toHaveValue('Phone');
     await expect(page.getByTestId('reused-notice')).toContainText('Remarks');
     await page.getByTestId('confirm-import').click();
     await expect(page.getByTestId('att-row')).toHaveCount(60);
