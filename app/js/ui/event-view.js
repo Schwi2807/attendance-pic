@@ -86,7 +86,7 @@ export function createEventView(ctx) {
             <div class="segmented" data-k="theme" role="group" aria-label="Theme">
               ${[['auto', 'monitor', 'Auto'], ['light', 'sun', 'Light'], ['dark', 'moon', 'Dark']].map(([v, ic, l]) => `<button type="button" data-theme-opt="${v}" aria-pressed="${store.settings.theme === v}">${icon(ic)}${l}</button>`).join('')}
             </div>
-            <label class="switch"><input type="checkbox" data-k="mask" ${store.settings.maskIds ? 'checked' : ''} data-testid="mask-toggle"><span class="track"></span><span>Mask IDs on screen (e.g. AD••••••)</span></label>
+            <label class="switch" data-testid="mask-toggle"><input type="checkbox" data-k="mask" ${store.settings.maskIds ? 'checked' : ''}><span class="track"></span><span>Mask IDs on screen (e.g. AD••••••)</span></label>
           </div>
         </div>
 

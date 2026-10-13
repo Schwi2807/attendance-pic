@@ -11,6 +11,10 @@ import { createEventView } from './ui/event-view.js';
 import { openImport } from './ui/import-flow.js';
 import { openExport } from './ui/export-flow.js';
 import { prettyDate } from './utils/format.js';
+import { setHeroIllustration } from './ui/hero.js';
+import { heroBusSVG } from './ui/bus-svg.js';
+
+setHeroIllustration(heroBusSVG);
 
 const admin = new AdminSession(store);
 store.confirm = (opts) => confirmDialog(opts);
