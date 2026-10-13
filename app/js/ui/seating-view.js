@@ -9,6 +9,7 @@ import { renderBusSVG, seatStateFromStore } from './bus-svg.js';
 import { openLayoutEditor } from './layout-editor.js';
 import { describeConfig, computeGeometry } from '../domain/layout.js';
 import { plural } from '../utils/format.js';
+import { installSeatInteractions } from './seat-interactions.js';
 
 const LEGEND = [
   ['available', 'Available'],
@@ -265,5 +266,6 @@ export function createSeatingView(ctx) {
     renderActions();
     api.hooks.onAdminChange?.();
   };
+  installSeatInteractions(api);
   return api;
 }

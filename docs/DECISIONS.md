@@ -53,3 +53,18 @@ reasoning, so it can be revisited later.
 | B8 | Editing the **default template** affects future auto-added buses; the editor offers "Also apply to all existing buses". | Each bus is independent per the brief; bulk-apply is opt-in. |
 | B9 | **Flip** is available to everyone (it is a viewing preference, stored per bus). Layout, rename, add/remove buses and the template are admin-only. | Flip does not change data that matters for seating. |
 | B10 | Changing a layout so seats with passengers disappear asks first; seat types on removed seats are discarded. Structural bus changes clear the undo history. | Prevents silent unseating and stale undo snapshots. |
+
+## Seat assignment & admin mode
+
+| # | Decision | Why |
+|---|----------|-----|
+| S1 | Tapping an **occupied seat while a person is selected** offers "Swap seats" (if the selected person already has a seat) or "Seat X here" (the occupant becomes unseated). | Covers both intentions without drag & drop. |
+| S2 | In **Move** mode, tapping an occupied seat swaps the two passengers. | Fewer steps than cancelling and starting a swap. |
+| S3 | **Auto-fill** uses the original list order and, by default, **skips people marked Absent** (checkbox in the confirmation). If there are not enough free seats it fills what it can and reports how many are left. | Absent people do not need seats; the PIC can untick the box. |
+| S4 | Admins get a **"Seat types" paint tool**: choose Unavailable / Reserved / VIP / Available (+ optional label) and tap seats; tapping a seat that already has the chosen type resets it to Available. Single seats can also be set from the seat sheet. | Marking many broken seats one sheet at a time would be slow. |
+| S5 | Marking an **occupied** seat **Unavailable** asks to unseat the passenger. Marking an occupied seat Reserved/VIP keeps the passenger (an admin may seat people there). | Unavailable seats cannot hold anyone; Reserved/VIP can, by admins. |
+| S6 | Non-admins tapping a Reserved/VIP seat see who it is reserved for and can unlock admin mode from there. | Clear feedback instead of a dead tap. |
+| S7 | The per-bus summary counts passengers in normal seats against usable seats ("One — 36/38 seated · 1 VIP · 1 reserved"). | Matches the brief's example format. |
+| S8 | Admin UI elements are **hidden while locked**; actions that need admin (e.g. "Buses", reset, delete event) prompt for the PIN. The top bar shows an amber **ADMIN** pill with the auto-lock countdown and a striped amber line. | Non-admins are not confronted with controls they cannot use, yet admin actions remain discoverable. |
+| S9 | Wrong PIN 5× → 30 s cool-down. **Forgot PIN** = erase all app data on this device (after typing ERASE); backups can be restored afterwards. | A local-only PIN cannot be recovered; erasing keeps the data protected. |
+| S10 | The PIN is stored as a salted SHA-256 hash; PIN length is stored so the pad can auto-submit. | Convenience; the PIN is a guard-rail, not a security boundary. |
