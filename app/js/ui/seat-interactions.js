@@ -270,7 +270,7 @@ export function installSeatInteractions(view) {
 
       if (p) {
         html += `<div class="sheet-actions">
-          <button class="btn ${st === 'present' ? 'btn-primary' : 'btn-secondary'}" type="button" data-a="present" data-testid="sheet-present">${icon('check')}<span>Present</span></button>
+          <button class="btn ${st === 'present' ? 'btn-success' : 'btn-secondary'}" type="button" data-a="present" data-testid="sheet-present">${icon('check')}<span>Present</span></button>
           <button class="btn ${st === 'absent' ? 'btn-danger' : 'btn-secondary'}" type="button" data-a="absent" data-testid="sheet-absent">${icon('x')}<span>Absent</span></button>
           <button class="btn btn-secondary" type="button" data-a="move" data-testid="sheet-move">${icon('move')}<span>Move</span></button>
           <button class="btn btn-secondary" type="button" data-a="swap" data-testid="sheet-swap">${icon('swap')}<span>Swap</span></button>

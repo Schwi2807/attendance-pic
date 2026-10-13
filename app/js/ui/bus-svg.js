@@ -185,7 +185,8 @@ export function seatStateFromStore(store, seat, { selectedSeatId, highlightPid, 
     if (type === 'vip' || type === 'reserved') st.tag = type === 'vip' ? 'VIP' : 'RSVD';
     if (highlightPid && pid === highlightPid) st.highlight = true;
   } else if (type === 'reserved' || type === 'vip') {
-    st.name = shortName(typeInfo.label, 9) || (type === 'vip' ? 'VIP' : 'Reserved');
+    const label = String(typeInfo.label || '').trim();
+    st.name = (label.length > 11 ? `${label.slice(0, 10)}…` : label) || (type === 'vip' ? 'VIP' : 'Reserved');
     st.tag = typeInfo.label ? (type === 'vip' ? 'VIP' : 'RSVD') : '';
     st.aria = `${type === 'vip' ? 'VIP' : 'reserved'}${typeInfo.label ? ` for ${typeInfo.label}` : ''}`;
   } else if (type === 'unavailable') {

@@ -1,0 +1,49 @@
+# Publishes the app to GitHub Pages on every push to main.
+# One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble site (app + fake sample files only)
+        run: |
+          mkdir -p _site/samples
+          cp -R app/. _site/
+          cp samples/participants_sample.* _site/samples/
+          # Stamp the service worker with the commit so every deploy refreshes the offline cache.
+          sed -i "s/__BUILD__/${GITHUB_SHA::7}/" _site/sw.js
+          touch _site/.nojekyll
+          echo "Files in site:" && find _site -type f | sort
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

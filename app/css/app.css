@@ -183,6 +183,7 @@ button { cursor: pointer; }
 .btn-ghost { background: transparent; color: var(--text-2); }
 .btn-ghost:hover { background: var(--surface-3); color: var(--text); }
 .btn-danger { background: var(--absent); color: #fff; box-shadow: 0 6px 16px -6px rgba(229, 72, 77, 0.6); }
+.btn-success { background: var(--present); color: #fff; box-shadow: 0 6px 16px -6px rgba(16, 163, 82, 0.6); }
 .btn-warn { background: var(--admin); color: #241500; }
 .btn-soft { background: var(--brand-soft); color: var(--brand); }
 .btn-sm { min-height: 36px; padding: 0 13px; font-size: 14px; }
@@ -650,3 +651,4 @@ main#view { flex: 1; width: 100%; max-width: 1400px; margin: 0 auto; padding: 18
 .ready-icon { width: 64px; height: 64px; border-radius: 22px; display: grid; place-items: center; background: var(--present); color: #fff; box-shadow: 0 14px 30px -12px rgba(16, 163, 82, 0.8); animation: pop 0.5s var(--spring); }
 .ready-icon .icon { width: 32px; height: 32px; stroke-width: 2.6; }
 .export-ready strong { font-size: 19px; }
+a.btn { text-decoration: none; }

@@ -50,6 +50,7 @@ export function renderHero(ctx) {
       <div class="hero-actions">
         <button class="btn btn-grad btn-lg" type="button" data-testid="hero-import">${icon('upload')}<span>Import participant list</span></button>
         <button class="btn btn-secondary btn-lg" type="button" data-testid="hero-sample">${icon('sparkles')}<span>Try sample data</span></button>
+        <a class="btn btn-ghost btn-lg" href="#/event" data-testid="hero-restore">${icon('database')}<span>Restore a backup</span></a>
       </div>
       <div class="hero-points">
         <span>${icon('check')}Works offline</span>

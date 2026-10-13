@@ -334,9 +334,14 @@ function drawDeckPage(doc, store, bus, geo, deck) {
     else if (v.type === 'vip' || v.type === 'reserved') text = v.label;
     if (text) {
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(r.w > 14 ? 6 : 5.2);
       doc.setTextColor(...C.ink);
-      let lines = doc.splitTextToSize(pdfSafe(text), inner);
+      // Shrink the font until the longest word fits, so names are not split mid-word.
+      const safe = pdfSafe(text);
+      const longest = safe.split(/\s+/).reduce((a, b) => (b.length > a.length ? b : a), '');
+      let size = r.w > 14 ? 6 : 5.2;
+      doc.setFontSize(size);
+      while (size > 4.4 && doc.getTextWidth(longest) > inner) doc.setFontSize((size -= 0.2));
+      let lines = doc.splitTextToSize(safe, inner);
       if (lines.length > 2) lines = [lines[0], `${lines[1].replace(/.{0,1}$/, '')}…`];
       doc.text(lines, cx, r.y + r.h / 2 + (lines.length > 1 ? 0 : 1.2), { align: 'center' });
     }
