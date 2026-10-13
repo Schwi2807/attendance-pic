@@ -12,7 +12,15 @@ const projects = [
   },
 ];
 if (process.env.PW_WEBKIT === '1') {
-  projects.push({ name: 'webkit-ipad', use: { ...ipad } });
+  projects.push({
+    name: 'webkit-ipad',
+    use: { ...ipad },
+    // WebKit on GPU-less CI runners renders 3–8× slower than Chromium, so the
+    // longest flows (painting 20+ seats, a full session with every export)
+    // need more than 60 s. Same assertions, more time.
+    timeout: 180_000,
+    expect: { timeout: 20_000 },
+  });
 }
 
 export default defineConfig({
