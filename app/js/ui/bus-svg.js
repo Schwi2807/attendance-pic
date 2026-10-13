@@ -65,7 +65,8 @@ export function renderBusSVG(bus, seatState, opts = {}) {
         g.push(rect(T({ along: 14, across, len: 9, wid: 10 }), 'bus-mirror', 3));
       }
     }
-    // Body
+    // Body (+ a soft offset shadow drawn as a shape — cheaper than a CSS filter)
+    g.push(`<path class="bus-shadow" d="${bodyPath}" transform="translate(0 7)"/>`);
     g.push(`<path class="bus-body" d="${bodyPath}"/>`);
     const inner = T({ along: 6, across: GEO.wall - 4, len: geo.L - 12, wid: geo.W - (GEO.wall - 4) * 2 });
     g.push(`<path class="bus-floor" d="${flipped ? rrPath(inner.x, inner.y, inner.w, inner.h, 9, 28, 28, 9) : rrPath(inner.x, inner.y, inner.w, inner.h, 28, 9, 9, 28)}"/>`);

@@ -140,7 +140,6 @@ body {
     radial-gradient(1100px 520px at 8% -10%, var(--bg-glow-1), transparent 60%),
     radial-gradient(900px 480px at 100% 0%, var(--bg-glow-2), transparent 60%),
     var(--bg);
-  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
@@ -489,7 +488,7 @@ main#view { flex: 1; width: 100%; max-width: 1400px; margin: 0 auto; padding: 18
 /* ── Overlays ─────────────────────────────────────────────────────────────── */
 .ov-backdrop {
   position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px;
-  background: rgba(8, 12, 24, 0.42); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  background: rgba(8, 12, 24, 0.5);
   opacity: 0; transition: opacity 0.2s var(--ease);
 }
 .ov-backdrop.is-open { opacity: 1; }

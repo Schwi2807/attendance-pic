@@ -1,5 +1,5 @@
-# Runs the Playwright suite on an iPad viewport in Chromium AND WebKit
-# (Safari's engine). Independent from deployment.
+# Runs the Playwright suite on an iPad viewport — Chromium and WebKit
+# (Safari's engine) as two parallel jobs. Independent from deployment.
 name: Tests
 
 on:
@@ -11,10 +11,19 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   playwright:
+    name: ${{ matrix.browser }} (iPad Pro 11)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,16 +31,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium webkit
-      - name: Run tests (Chromium + WebKit, iPad Pro 11 landscape)
-        run: npx playwright test
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Run tests
+        run: npx playwright test --project=${{ matrix.browser }}-ipad --max-failures=8
         env:
           CI: '1'
-          PW_WEBKIT: '1'
+          PW_WEBKIT: ${{ matrix.browser == 'webkit' && '1' || '0' }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.browser }}
           path: |
             playwright-report/
             test-results/

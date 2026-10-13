@@ -78,12 +78,14 @@ test.describe('Attendance', () => {
     await pressPin(page);
     await page.getByTestId('reset-go').click();
     // confirmation step — cancel keeps everything
-    await page.locator('[data-action=cancel]').click();
+    await page.getByRole('dialog', { name: 'Are you sure?' }).locator('[data-action=cancel]').click();
     await expect(row(page, 0)).toHaveAttribute('data-status', 'present');
     await page.getByTestId('att-more').click();
     await page.locator('.choice[data-value=reset]').click();
     await page.getByTestId('reset-go').click();
-    await page.locator('[data-action=ok]').click();
+    const confirm = page.getByRole('dialog', { name: 'Are you sure?' });
+    await expect(confirm).toBeVisible();
+    await confirm.locator('[data-action=ok]').click();
     await expect(page.getByTestId('counter')).toHaveAttribute('aria-label', '0 present, 0 absent, 60 unmarked of 60');
   });
 
