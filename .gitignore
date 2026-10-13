@@ -1,0 +1,24 @@
+# ── Participant data must never be committed ─────────────────────────────
+# Real lists (.xlsx / .csv / .txt) are ignored everywhere; only the fake
+# sample files in /samples are allowed into the repository.
+*.xlsx
+*.csv
+*.txt
+!/samples/*.xlsx
+!/samples/*.csv
+!/samples/*.txt
+
+# Personal scratch folder for real lists, exports and backups
+/private/
+
+# Exports / backups produced by the app (may contain real names)
+Attendance_*.json
+Attendance_*.pdf
+
+# Tooling
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+_site/
+.DS_Store

@@ -1,0 +1,11 @@
+/* Bus seat maps — filled in by the layout engine milestone. */
+.boot { display: grid; place-items: center; gap: 10px; padding: 120px 0; color: var(--text-3); }
+.boot-logo { width: 56px; height: 56px; animation: floaty 2s ease-in-out infinite; }
+.icon.spin { animation: spin 1s linear infinite; }
+.noscript { padding: 40px; text-align: center; font-family: sans-serif; }
+.hb-body { fill: var(--surface); stroke: var(--line-strong); stroke-width: 2; }
+.hb-glass { fill: #cfe0ff; }
+.hb-wheel { fill: var(--surface-3); stroke: var(--line-strong); }
+.hs-free { fill: var(--surface-2); stroke: var(--line-strong); }
+.hs-taken { fill: var(--brand-soft); stroke: var(--brand); }
+.hs-absent { fill: #fde2e2; stroke: var(--absent); }

@@ -1,0 +1,61 @@
+No	Name	Matric No	Programme	Group	Phone
+1	Aiman bin Rahman	AD250001	Civil Engineering	G1	012-555 1000
+2	Siti Hajar binti Ismail	AD250002	Computer Science	G1	012-555 1037
+3	Wong Kok Wai	AD250003	Mechanical Engineering	G1	012-555 1074
+4	Danial bin Hassan	AD250004	Accounting	G1	012-555 1111
+5	Zara binti Yusof	AD250005	Architecture	G1	012-555 1148
+6	Meena a/p Muthu	AD250006	Biotechnology	G1	012-555 1185
+7	Haziq bin Hamid	AD250007	Civil Engineering	G1	012-555 1222
+8	Sofea binti Yusof	AD250008	Computer Science	G1	012-555 1259
+9	Lim Kai Wen	AD250009	Mechanical Engineering	G1	012-555 1296
+10	Aiman bin Abdullah	AD250010	Accounting	G1	012-555 1333
+11	Siti Hajar binti Zainal	AD250011	Architecture	G1	012-555 1370
+12	Arjun a/l Nair	AD250012	Biotechnology	G1	012-555 1407
+13	Irfan bin Rosli	AD250013	Civil Engineering	G1	012-555 1444
+14	Balqis binti Zainal	AD250014	Computer Science	G1	012-555 1481
+15	Tan Mei Ling	AD250015	Mechanical Engineering	G1	012-555 1518
+16	Haziq bin Ismail	AD250016	Accounting	G2	012-555 1555
+17	Sofea binti Rahman	AD250017	Architecture	G2	012-555 1592
+18	Vikram a/l Pillai	AD250018	Biotechnology	G2	012-555 1629
+19	Hakim bin Zainal	AD250019	Civil Engineering	G2	012-555 1666
+20	Aisyah binti Rahman	AD250020	Computer Science	G2	012-555 1703
+21	Yap Yi Ling	AD250021	Mechanical Engineering	G2	012-555 1740
+22	Irfan bin Rahman	AD250022	Accounting	G2	012-555 1777
+23	Balqis binti Hassan	AD250023	Architecture	G2	012-555 1814
+24	Suresh a/l Ramasamy	AD250024	Biotechnology	G2	012-555 1851
+25	Luqman bin Osman	AD250025	Civil Engineering	G2	012-555 1888
+26	Damia binti Hassan	AD250026	Computer Science	G2	012-555 1925
+27	Teh Wei Jie	AD250027	Mechanical Engineering	G2	012-555 1962
+28	Hakim bin Hamid	AD250028	Accounting	G2	012-555 1999
+29	Aisyah binti Osman	AD250029	Architecture	G2	012-555 2036
+30	Divya a/p Krishnan	AD250030	Biotechnology	G2	012-555 2073
+31	Amir bin Kamal	AD250031	Civil Engineering	G3	012-555 2110
+32	Iman binti Osman	AD250032	Computer Science	G3	012-555 2147
+33	Ng Zi Xuan	AD250033	Mechanical Engineering	G3	012-555 2184
+34	Luqman bin Rosli	AD250034	Accounting	G3	012-555 2221
+35	Damia binti Hamid	AD250035	Architecture	G3	012-555 2258
+36	Kavitha a/p Subramaniam	AD250036	Biotechnology	G3	012-555 2295
+37	Farhan bin Yusof	AD250037	Civil Engineering	G3	012-555 2332
+38	Hana binti Hamid	AD250038	Computer Science	G3	012-555 2369
+39	Goh Xin Yi	AD250039	Mechanical Engineering	G3	012-555 2406
+40	Amir bin Zainal	AD250040	Accounting	G3	012-555 2443
+41	Iman binti Abdullah	AD250041	Architecture	G3	012-555 2480
+42	Kiran a/l Naidu	AD250042	Biotechnology	G3	012-555 2517
+43	Ariff bin Hassan	AD250043	Civil Engineering	G3	012-555 2554
+44	Nurul Ain binti Abdullah	AD250044	Computer Science	G3	012-555 2591
+45	Lee Jun Hao	AD250045	Mechanical Engineering	G3	012-555 2628
+46	Farhan bin Osman	AD250046	Accounting	G4	012-555 2665
+47	Hana binti Kamal	AD250047	Architecture	G4	012-555 2702
+48	Ravi a/l Gopal	AD250048	Biotechnology	G4	012-555 2739
+49	Syafiq bin Abdullah	AD250049	Civil Engineering	G4	012-555 2776
+50	Alya binti Kamal	AD250050	Computer Science	G4	012-555 2813
+51	Ong Jia Hui	AD250051	Mechanical Engineering	G4	012-555 2850
+52	Ariff bin Kamal	AD250052	Accounting	G4	012-555 2887
+53	Nurul Ain binti Rosli	AD250053	Architecture	G4	012-555 2924
+54	Priya a/p Selvam	AD250054	Biotechnology	G4	012-555 2961
+55	Danial bin Ismail	AD250055	Civil Engineering	G4	012-555 2998
+56	Zara binti Rosli	AD250056	Computer Science	G4	012-555 3035
+57	Chong Chee Keong	AD250057	Mechanical Engineering	G4	012-555 3072
+58	Syafiq bin Yusof	AD250058	Accounting	G4	012-555 3109
+59	Alya binti Ismail	AD250059	Architecture	G4	012-555 3146
+60	Deepa a/p Raju	AD250060	Biotechnology	G4	012-555 3183

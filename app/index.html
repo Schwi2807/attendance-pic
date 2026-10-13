@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!--
+    Privacy guarantee: the app may only load its own files. No CDNs, fonts,
+    analytics or API calls. blob:/data: are needed for generated downloads
+    and inline SVG images.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Offline attendance and bus seating for event PICs. Everything stays on this device.">
+  <meta name="theme-color" content="#f3f5fb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#090d16" media="(prefers-color-scheme: dark)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Attendance PIC">
+  <meta name="format-detection" content="telephone=no">
+  <title>Attendance PIC</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/bus.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar" id="topbar"></header>
+    <main id="view" tabindex="-1">
+      <div class="boot" id="boot">
+        <svg class="boot-logo" viewBox="0 0 48 48" aria-hidden="true"><rect x="2" y="2" width="44" height="44" rx="13" fill="#4F6BFF"/><path d="m15 25 6 6 13-13" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <p>Loading…</p>
+      </div>
+    </main>
+  </div>
+  <div id="overlay-root"></div>
+  <div id="toast-root" aria-live="polite"></div>
+
+  <!-- Shared SVG patterns for the bus seat maps -->
+  <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <pattern id="hatch-reserved" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect class="hatch-bg" width="7" height="7"/>
+        <line class="hatch-line" x1="0" y1="0" x2="0" y2="7"/>
+      </pattern>
+      <linearGradient id="glass-grad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" class="glass-stop-1"/>
+        <stop offset="1" class="glass-stop-2"/>
+      </linearGradient>
+      <linearGradient id="body-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" class="body-stop-1"/>
+        <stop offset="1" class="body-stop-2"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <noscript>
+    <p class="noscript">Attendance PIC needs JavaScript. In Safari, check Settings → Safari → Advanced → JavaScript.</p>
+  </noscript>
+</body>
+</html>

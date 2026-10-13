@@ -1,0 +1,22 @@
+{
+  "name": "attendance-pic",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline-first attendance + bus seating PWA for event PICs (iPad Safari).",
+  "type": "module",
+  "scripts": {
+    "start": "node tests/server.mjs",
+    "test": "playwright test",
+    "test:webkit": "PW_WEBKIT=1 playwright test --project=webkit-ipad",
+    "vendor": "node scripts/vendor.mjs",
+    "samples": "node scripts/make-samples.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "jspdf": "4.2.1",
+    "jspdf-autotable": "5.0.8",
+    "xlsx-js-style": "1.2.0"
+  }
+}
