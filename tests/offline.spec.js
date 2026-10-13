@@ -4,7 +4,30 @@ import { readFileSync } from 'node:fs';
 test.describe('PWA / offline', () => {
   test.use({ serviceWorkers: 'allow' });
 
-  test('works fully offline after the first visit (service worker cache)', async ({ page, context }) => {
+  test('service worker pre-caches every file and controls the page', async ({ page }) => {
+    await openFresh(page);
+    await page.waitForFunction(async () => {
+      const reg = await navigator.serviceWorker.getRegistration();
+      return Boolean(reg?.active && navigator.serviceWorker.controller);
+    }, null, { timeout: 30_000 });
+    const { cached, expected } = await page.evaluate(async () => {
+      const src = await (await fetch('sw.js')).text();
+      const list = [...src.matchAll(/'\.\/([^']*)'/g)].map((m) => new URL(m[1], location.href).href);
+      const names = (await caches.keys()).filter((k) => k.startsWith('attendance-pic-'));
+      const cache = await caches.open(names[0]);
+      const keys = (await cache.keys()).map((r) => r.url);
+      return { cached: list.filter((u) => keys.includes(u)).length, expected: list.length };
+    });
+    expect(expected).toBeGreaterThan(40);
+    expect(cached).toBe(expected);
+  });
+
+  test('works fully offline after the first visit (service worker cache)', async ({ page, context, browserName }) => {
+    // Playwright's WebKit cannot reload a page while context.setOffline(true)
+    // is active ("WebKit encountered an internal error"), even when a service
+    // worker would answer. The cache itself is verified on WebKit by the test
+    // above; this end-to-end offline run is done on Chromium.
+    test.skip(browserName === 'webkit', 'Playwright WebKit limitation: reload while offline-emulated');
     await openFresh(page);
     await page.waitForFunction(async () => {
       const reg = await navigator.serviceWorker.getRegistration();

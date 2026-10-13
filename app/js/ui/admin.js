@@ -220,7 +220,10 @@ export class AdminSession extends EventTarget {
     document.documentElement.classList.add('is-admin');
     this.touch();
     clearInterval(this.tick);
-    this.tick = setInterval(() => this.emit(), 1000);
+    // The countdown only needs the ADMIN pill; views listen to 'change',
+    // which fires on lock/unlock only (re-rendering every second would
+    // e.g. close the iPad keyboard while typing a seat label).
+    this.tick = setInterval(() => this.dispatchEvent(new Event('tick')), 1000);
     this.emit();
     toast('Admin mode unlocked', { kind: 'success', duration: 1800 });
     return true;

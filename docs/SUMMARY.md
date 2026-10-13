@@ -12,7 +12,7 @@ no backend, no data leaves the device.
 | **2. Bus layout engine** | Pure JSON configs (single/double deck, 2-2 / 2-3 / 1-2 / 1-3, rows, back bench, driver side), pure seat enumeration / labels (`3C`, `L3C`, `U3C`) / stable seat IDs / geometry. Redbus-style top-down SVG coach (nose, windscreen, mirrors, wheels, driver + steering wheel, door, aisle, rear, stairs, luggage area), flip per bus, responsive scaling. Automatic bus count (usable = total − unavailable − reserved − VIP) recomputed on import / layout / seat-type changes, warnings before removing buses or seats with passengers, manual mode, default template, admin layout editor with live preview, add / rename / reorder / remove buses. |
 | **3. Seat assignment + admin + seat types** | Tap-tap seating (person → seat, or seat → searchable picker), seat sheet with Move / Swap / Unassign / Present / Absent, auto-fill (list order, front→back, lower deck first, skips non-available seats, never moves seated people, optional skip-absent), per-bus summaries, legend for all 7 seat states. PIN on first launch (salted SHA-256), unlock pad, 5-minute idle auto-lock, ADMIN indicator with countdown, change PIN, forgot-PIN erase. Admin-only seat types (seat sheet or "paint" tool) with labels; admins may seat people in Reserved/VIP seats. |
 | **4. Exports** | XLSX (original columns + Present, Bus, Seat, Remarks, Check-in Time; Absent rows `#FDE2E2`; Event sheet), CSV (UTF-8 BOM, injection-safe), PDF (A4, auto landscape, header with counts, repeated table header, Absent rows `#FDE2E2`, page numbers; optional seat maps — one page per deck), JSON backup + admin-only restore. Unmarked → "mark Absent" or "leave blank" prompt. `Attendance_<EventName>_<YYYY-MM-DD>.<ext>`. Web Share API with files, download fallback. |
-| **5. PWA, deploy, tests, docs** | Manifest + icons (incl. maskable and Apple touch icon), service worker with a versioned pre-cache of every file (works in airplane mode), update prompt. `.github/workflows/deploy.yml` (upload-pages-artifact + deploy-pages on push to `main`) and `.github/workflows/test.yml` (Chromium + WebKit). 52 Playwright tests. README with screenshots, `docs/DECISIONS.md`, `docs/PHASE2.md`, `docs/OWNER_TODO.md`. |
+| **5. PWA, deploy, tests, docs** | Manifest + icons (incl. maskable and Apple touch icon), service worker with a versioned pre-cache of every file (works in airplane mode), update prompt. `.github/workflows/deploy.yml` (upload-pages-artifact + deploy-pages on push to `main`) and `.github/workflows/test.yml` (Chromium + WebKit). 53 Playwright tests. README with screenshots, `docs/DECISIONS.md`, `docs/PHASE2.md`, `docs/OWNER_TODO.md`. |
 
 ## Test results
 
@@ -20,20 +20,20 @@ Run in this environment: `npx playwright test` — **Chromium**, `iPad Pro 11 la
 (1194 × 834, touch, mobile), app served under `/attendance-pic/` like GitHub Pages.
 
 ```
-Running 52 tests using 4 workers (Chromium, iPad Pro 11 landscape)
+Running 53 tests using 4 workers (Chromium, iPad Pro 11 landscape)
 
   ✓ admin.spec.js           4 passed
   ✓ attendance.spec.js     10 passed
   ✓ buses.spec.js          15 passed
   ✓ export.spec.js          6 passed
   ✓ import.spec.js          5 passed
-  ✓ offline.spec.js         3 passed
+  ✓ offline.spec.js         4 passed
   ✓ persistence.spec.js     1 passed
   ✓ precache.spec.js        1 passed
   ✓ privacy.spec.js         1 passed
   ✓ seating.spec.js         6 passed
 
-  52 passed (2.4m) — 0 failed, 0 flaky
+  53 passed (2.4m) — 0 failed, 0 flaky
   (an extra --repeat-each=2 run: 103/104 passed; the one flaky toast assertion was fixed and re-verified 12/12)
 ```
 
@@ -56,12 +56,17 @@ Coverage of the brief's quality list:
 | reload persistence | `persistence.spec.js` |
 | all exports incl. PDF with and without seat maps | `export.spec.js` (XLSX fill check, CSV, PDF table, PDF + maps, maps only, JSON backup + restore) |
 | no off-origin network requests | `privacy.spec.js` + an auto fixture on **every** test (records, aborts and fails on any off-origin request, CSP violation or page error) |
-| offline | `offline.spec.js` (service worker, offline reload, offline PDF export), manifest, CSP; `precache.spec.js` |
+| offline | `offline.spec.js` (every file in the SW cache — both browsers; offline reload + offline PDF export — Chromium), manifest, CSP; `precache.spec.js` |
 
 **WebKit:** Playwright's WebKit could not be installed in this environment (browsers are pre-provisioned;
 `playwright install` is not allowed), so per the brief the suite ran on Chromium and the README says so.
-The *Tests* GitHub Action runs the same suite on **Chromium and WebKit** for every push / PR — check its
-result on GitHub.
+The *Tests* GitHub Action runs the same suite on **Chromium and WebKit** for every push / PR.
+
+The first WebKit run on GitHub found a **real bug**: the admin auto-lock countdown re-rendered the seat
+sheet and the seating toolbar every second while admin mode was on (on an iPad that would close the
+keyboard while typing a VIP label). Fixed by giving the countdown its own `tick` event. The same run showed
+that Playwright's WebKit cannot reload a page while offline emulation is on, so the end-to-end offline
+test runs on Chromium, and a new cross-browser test checks that every file is in the service-worker cache.
 
 Also checked manually (scripted): 400-person list → import < 1 s, seating render of 10 buses ≈ 0.2 s,
 auto-fill of 400 ≈ 1.2 s; screenshots of every screen in light/dark, portrait/landscape; PDF pages

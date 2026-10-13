@@ -153,7 +153,7 @@ Helper scripts:
 | `npm run icons` | Renders the PWA icons from the SVG logo. |
 | `npm run screenshots` | Regenerates the README screenshots with fake data. |
 
-**Tests** (`tests/*.spec.js`, 52 cases) cover import of all formats, delimiter detection, warnings,
+**Tests** (`tests/*.spec.js`, 53 cases) cover import of all formats, delimiter detection, warnings,
 marking/undo/filters/search/sort, auto bus count (60 people → 2 buses), every layout (2-2, 2-3, 1-2, 1-3),
 back bench, double-decker, flip, admin PIN lock/unlock/auto-lock/change, seat types changing capacity and
 bus count, non-admins blocked from seat types, assign/move/swap/unassign, auto-fill, reload persistence,

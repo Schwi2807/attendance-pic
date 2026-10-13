@@ -143,6 +143,7 @@ async function boot() {
     if (t === 'settings' && e.detail.key === 'theme') applyTheme(store.settings.theme);
     for (const v of views.values()) v.onChange?.(e.detail);
   });
+  admin.addEventListener('tick', renderAdminPill);
   admin.addEventListener('change', () => {
     renderAdminPill();
     for (const v of views.values()) v.onAdminChange?.();

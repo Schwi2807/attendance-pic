@@ -28,7 +28,7 @@ If a workflow ever complains that an action version is deprecated, bump the vers
 
 ## 3. Check the WebKit (Safari engine) test run
 
-The build environment could not install Playwright's WebKit, so the 52 tests were run on Chromium with an
+The build environment could not install Playwright's WebKit, so the 53 tests were run on Chromium with an
 iPad viewport. The *Tests* workflow runs them on **Chromium and WebKit**. Open *Actions → Tests* and check
 the latest run on `main`. If a WebKit-only failure shows up, open a new Claude session with the log.
 
