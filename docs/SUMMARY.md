@@ -58,8 +58,15 @@ Coverage of the brief's quality list:
 | no off-origin network requests | `privacy.spec.js` + an auto fixture on **every** test (records, aborts and fails on any off-origin request, CSP violation or page error) |
 | offline | `offline.spec.js` (every file in the SW cache — both browsers; offline reload + offline PDF export — Chromium), manifest, CSP; `precache.spec.js` |
 
+**GitHub Actions (final run on `main`, commit `60a28ef`):**
+
+| Job | Result | Time |
+|---|---|---|
+| chromium (iPad Pro 11) | **53 passed** | 2.5 min |
+| webkit (iPad Pro 11) | **52 passed, 1 skipped** (offline reload — see below) | 9.6 min |
+
 **WebKit:** Playwright's WebKit could not be installed in this environment (browsers are pre-provisioned;
-`playwright install` is not allowed), so per the brief the suite ran on Chromium and the README says so.
+`playwright install` is not allowed), so per the brief the suite ran on Chromium here and the README says so.
 The *Tests* GitHub Action runs the same suite on **Chromium and WebKit** for every push / PR.
 
 The first WebKit run on GitHub found a **real bug**: the admin auto-lock countdown re-rendered the seat
@@ -82,17 +89,20 @@ rendered and inspected.
 - One attendance session per event in the UI (model supports more). Undo history is in memory only.
 - Web Share with files depends on the browser (iPad Safari: yes; desktop Chromium on Linux: falls back to download).
 - Service-worker updates apply after tapping **Reload** on the update toast (or after all app windows close).
-- The repository's default branch is still the session branch; deploys from `main` may be blocked by the
-  `github-pages` environment rule until the default branch / allowed branches are updated (TODO list).
+- The repository's default branch is still the session branch (`claude/gallant-euler-p8tdrn`); switch it to
+  `main` (TODO list). Deploys from `main` already work.
+
+## Deployment
+
+PR [#1](https://github.com/Schwi2807/attendance-pic/pull/1) was merged into `main`; the *Deploy to GitHub
+Pages* workflow succeeded. **Live app: https://schwi2807.github.io/attendance-pic/**
 
 ## What you need to do next
 
 See **[`docs/OWNER_TODO.md`](OWNER_TODO.md)**. In short:
 
-1. **Settings → General → Default branch → `main`** (the repo is already public with Pages on).
-2. Check **Settings → Pages → Source: GitHub Actions** and that **`main`** may deploy to the `github-pages` environment.
-3. If the deploy run on `main` failed, **Actions → Deploy to GitHub Pages → Run workflow** on `main`.
-4. Open **https://schwi2807.github.io/attendance-pic/** in Safari on the iPad → **Share → Add to Home Screen**,
-   open it from the icon once online, create your PIN, try the sample data.
-5. Check the **Tests** workflow (WebKit) result on GitHub.
-6. Optionally choose a license.
+1. **Settings → General → Default branch → `main`** (recommended; deploys already work).
+2. On the iPad: open the link in **Safari → Share → Add to Home Screen**, open it **from the icon** once
+   online, wait for *“Ready to work offline”*, create your PIN, try the sample data, then test airplane mode.
+3. Keep the repository **public** (a private repo on the free plan unpublishes the site).
+4. Optionally choose a license.

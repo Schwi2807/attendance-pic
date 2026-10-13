@@ -161,8 +161,10 @@ XLSX/CSV/PDF (with and without seat maps)/JSON exports and restore, offline use 
 the CSP, and **zero off-origin requests**.
 
 > **Browser note:** the build environment used for this project could not install Playwright's WebKit,
-> so the suite was run on **Chromium with an iPad Pro 11 viewport** there. The *Tests* GitHub Action runs
-> the same suite on **both Chromium and WebKit** (Safari's engine) on every push and pull request.
+> so the suite was run locally on **Chromium with an iPad Pro 11 viewport**. The *Tests* GitHub Action runs
+> the same suite on **Chromium and WebKit** (Safari's engine) as two parallel jobs on every push and pull
+> request — both green on `main` (WebKit skips only the offline-reload test, which Playwright's WebKit
+> cannot emulate; it checks the offline cache instead).
 
 ### Project structure
 

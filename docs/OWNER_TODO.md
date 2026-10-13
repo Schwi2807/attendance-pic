@@ -2,35 +2,27 @@
 
 These need your GitHub account or your iPad. Everything else is done.
 
-## 1. Let GitHub Pages publish from `main` (required)
+## 1. ✅ Done — the app is live
 
-At the end of the session the repository was already **public** with Pages switched on — thanks!
-Two settings still need a click, because the repository was empty when work started and GitHub made the
-first pushed branch (`claude/gallant-euler-p8tdrn`) the **default branch**:
+The repository is public, Pages is on, PR #1 was merged into `main` and the *Deploy to GitHub Pages*
+workflow succeeded: **https://schwi2807.github.io/attendance-pic/**. Every push to `main` redeploys it.
 
-1. **Settings → General → Default branch** → switch to **`main`**.
-2. **Settings → Pages → Build and deployment → Source** → make sure it says **“GitHub Actions”**.
-3. **Settings → Environments → `github-pages` → Deployment branches and tags** → make sure **`main`** is
-   allowed (GitHub usually pre-fills the default branch there; if it lists only
-   `claude/gallant-euler-p8tdrn`, add `main` or switch to “No restriction”).
+## 2. Switch the default branch to `main` (recommended)
 
-## 2. Run the deployment
-
-The work was merged into `main` at the end of the session (see `docs/SUMMARY.md`). If the *Deploy to GitHub
-Pages* run on `main` failed because of the settings above:
-
-- *Actions → Deploy to GitHub Pages → Run workflow* (branch `main`), **or** push any commit to `main`.
-- When it is green, the app is at **https://schwi2807.github.io/attendance-pic/**.
-- Afterwards you can delete the `claude/gallant-euler-p8tdrn` branch.
+The repository was empty when work started, so GitHub made the first pushed branch
+(`claude/gallant-euler-p8tdrn`) the **default branch**. Change it so new pull requests target `main`:
+**Settings → General → Default branch → switch to `main`.** Afterwards you can delete the
+`claude/gallant-euler-p8tdrn` branch.
 
 If a workflow ever complains that an action version is deprecated, bump the version number in
-`.github/workflows/deploy.yml` (e.g. `actions/upload-pages-artifact@v3` → the newest major).
+`.github/workflows/*.yml` (GitHub currently warns that some actions still target Node.js 20; they keep
+working because GitHub runs them on Node.js 24).
 
-## 3. Check the WebKit (Safari engine) test run
+## 3. ✅ Done — WebKit (Safari engine) tests
 
-The build environment could not install Playwright's WebKit, so the 53 tests were run on Chromium with an
-iPad viewport. The *Tests* workflow runs them on **Chromium and WebKit**. Open *Actions → Tests* and check
-the latest run on `main`. If a WebKit-only failure shows up, open a new Claude session with the log.
+The *Tests* workflow runs the suite on Chromium **and** WebKit as two parallel jobs. On `main`:
+Chromium 53/53 passed, WebKit 52 passed + 1 skipped (the offline-reload test, which Playwright cannot do on
+WebKit; the WebKit job checks the offline cache instead). Real-iPad confirmation is step 4.
 
 ## 4. Install on your iPad (once)
 
@@ -47,5 +39,8 @@ Follow the *Pre-event checklist* in the README (cache online, PIN, test import, 
 ## 6. Optional
 
 - **Choose a license** for the repository (none was added — that is your call). MIT is common for small tools.
+- **Keep the repository public.** Making it private on the free plan unpublishes the site: installed iPads keep
+  working from their offline copy, but cannot update, and a new install (or a reinstall after the cache is
+  cleared) is impossible until it is public again. GitHub Pro, Cloudflare Pages or Netlify can serve a private repo.
 - Rename the default branch / protect `main` if you want PRs reviewed before deploys.
 - Replace `Cik Aina` / `Industrial Visit 2026` in `scripts/screenshots.mjs` if you regenerate screenshots.
