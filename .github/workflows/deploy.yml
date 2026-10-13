@@ -5,6 +5,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # Only redeploy when the app changes — every deploy makes installed iPads
+    # offer "A new version of the app is ready".
+    paths:
+      - 'app/**'
+      - 'samples/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
