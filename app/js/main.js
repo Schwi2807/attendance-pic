@@ -10,6 +10,7 @@ import { createSeatingView } from './ui/seating-view.js';
 import { createEventView } from './ui/event-view.js';
 import { openImport } from './ui/import-flow.js';
 import { openExport } from './ui/export-flow.js';
+import './ui/backup.js';
 import { prettyDate } from './utils/format.js';
 import { setHeroIllustration } from './ui/hero.js';
 import { heroBusSVG } from './ui/bus-svg.js';
@@ -30,7 +31,7 @@ const ctx = {
   admin,
   navigate,
   openImport: (opts) => openImport(ctx, opts),
-  openExport: () => openExport(ctx),
+  openExport: (preset) => openExport(ctx, preset),
 };
 const views = new Map();
 let current = null;

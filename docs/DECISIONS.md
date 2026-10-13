@@ -68,3 +68,17 @@ reasoning, so it can be revisited later.
 | S8 | Admin UI elements are **hidden while locked**; actions that need admin (e.g. "Buses", reset, delete event) prompt for the PIN. The top bar shows an amber **ADMIN** pill with the auto-lock countdown and a striped amber line. | Non-admins are not confronted with controls they cannot use, yet admin actions remain discoverable. |
 | S9 | Wrong PIN 5× → 30 s cool-down. **Forgot PIN** = erase all app data on this device (after typing ERASE); backups can be restored afterwards. | A local-only PIN cannot be recovered; erasing keeps the data protected. |
 | S10 | The PIN is stored as a salted SHA-256 hash; PIN length is stored so the pad can auto-submit. | Convenience; the PIN is a guard-rail, not a security boundary. |
+
+## Export
+
+| # | Decision | Why |
+|---|----------|-----|
+| E1 | Export columns = original columns **except** the ones the app manages (an imported Present / Seat / Remarks / Bus / Check-in column), followed by **Present, Bus, Seat, Remarks, Check-in Time**. | Avoids two "Present" columns with conflicting values; a re-import round-trips cleanly. |
+| E2 | "Mark them Absent" before export is **saved** to the list (and can be undone); "Leave blank" leaves the Present cell empty. | The export then matches what the app shows. |
+| E3 | XLSX: bold header with an underline, auto column widths, auto-filter, **#FDE2E2 fill on every cell of Absent rows**, no other fills; plain integers are written as numbers, everything else (IDs, phones with leading zeros) as text. A second sheet "Event" holds event details and counts. | Clean for the lecturer; no "number stored as text" noise and no lost leading zeros. |
+| E4 | CSV: UTF-8 **with BOM**, CRLF, RFC-4180 quoting; cells beginning with `= + - @` are prefixed with `'` (unless they are plain numbers). | Excel opens UTF-8 correctly; prevents spreadsheet formula injection. |
+| E5 | PDF: switches to **landscape** when there are more than 8 columns or the estimated width exceeds A4 portrait. Header (event, date, venue, PIC, coloured count pills), table header repeated on every page, Absent rows #FDE2E2, "Page X of Y" footer with generation time. Seat maps: one landscape page per deck, vector-drawn from the same geometry as the screen, names in seats (2 lines max), absent seats light red with "ABSENT", VIP/Reserved labelled, legend. | Mirrors the XLSX and the on-screen map. |
+| E6 | jsPDF's built-in Helvetica only covers Windows-1252; other characters are transliterated or replaced with `?` (see Known limitations). | Embedding a Unicode font would add ~300 KB+; Malaysian university lists are almost always romanised. |
+| E7 | The file is generated first, then a **"ready" screen** offers **Share…** (Web Share API with files, when the browser supports it) and **Download**. | iPad Safari only allows `navigator.share` directly inside a tap; generating first and sharing on a second tap is reliable. |
+| E8 | JSON backup file name follows the same pattern (`Attendance_<Event>_<date>.json`); restoring is admin-only and replaces an event with the same ID (asks first). Restore works on a fresh device too (Event tab). | Same naming rule as the brief; restoring overwrites data so it is protected. |
+| E9 | File name: `<EventName>` keeps letters, digits, `-` and `_`, spaces become `_`; `<YYYY-MM-DD>` is the event date (today if empty). | Safe on iOS, Windows and macOS. |
