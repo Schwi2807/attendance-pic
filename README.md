@@ -36,10 +36,11 @@ storage.
 | | |
 |---|---|
 | **📥 Import anything** | `.xlsx`, `.csv`, `.txt` (comma, tab or semicolon detected automatically). Preview, pick the **Name** and **ID** columns, choose key info to show. Existing `Present` / `Seat` / `Remarks` columns are reused. Duplicate IDs and empty rows are flagged. |
-| **✅ Fast attendance** | Big **Present / Absent** buttons, automatic `HH:MM` check-in time, remarks, sticky search (name, ID or seat), filters (All · Unmarked · Present · Absent · Unseated), sorting, live counters, **undo**. |
+| **✅ Fast attendance** | Big **Present / Absent** buttons, automatic check-in stamp (`13 Oct 2026, 08:15`), remarks, sticky search (name, ID or seat), filters (All · Unmarked · Present · Absent · Unseated) plus a **bus filter**, sorting, live counters, **undo**. |
 | **🚌 Real bus layouts** | Top-down coach with nose, windscreen, driver, steering wheel, door, aisle and rear. Layouts **2-2, 2-3, 1-2, 1-3**, any number of rows, optional **back bench**, **double-decker** (L/U seats, stairs on both decks), flip the facing direction. |
 | **🪑 Tap-tap seating** | Tap a person then a seat — or tap a seat and pick a person. Move, swap, unassign, mark present/absent from the seat. **Auto-fill** front to back, lower deck first, never moving anyone already seated. The participants panel shows each person's **ID and phone number**; the seat sheet has a **tap-to-call** link. |
-| **🔢 Automatic bus count** | Adds buses until everyone fits (usable = total − unavailable − reserved − VIP). Warns before removing a bus or seats that hold passengers. |
+| **🏷️ Bus groups** | Decide *who rides which bus* before anyone has a seat: tap **Select**, tick people (or search a group, e.g. `G2`, and tap *All shown*) and **Put on bus…**, or let **Random** spread them evenly over the buses. Groups show in the Attendance list, auto-fill seats each person on their own bus, and the export's *Bus* column carries the group. |
+| **🔢 Automatic bus count** | Adds buses until everyone fits (usable = total − unavailable − reserved − VIP). People an admin seats in a VIP or reserved seat count as seated and no longer need a normal seat. Warns before removing a bus or seats that hold passengers. |
 | **🔐 Admin mode** | PIN set on first launch, auto-lock after 5 minutes idle. Only admins mark seats **Unavailable / Reserved / VIP** (with labels such as “Dr. Ahmad”), edit layouts, add/remove/rename buses, reset or restore. |
 | **📤 Exports** | **Excel** (absent rows shaded `#FDE2E2`), **CSV**, **PDF** (A4, event header, counts, repeated table header, page numbers, optional **seat maps** — one page per deck) and a **JSON backup**. Shared through the iPad share sheet (AirDrop, Mail, Files…) or downloaded. |
 | **🌗 Made for iPad** | Portrait and landscape, light and dark mode, 44 px+ touch targets, Add to Home Screen, works in airplane mode. |
@@ -56,8 +57,8 @@ storage.
 | <img src="docs/screenshots/layout-editor.jpg" alt="Double-decker layout editor"> | <img src="docs/screenshots/export.jpg" alt="Export dialog"> |
 | **PDF report** | **PDF seat map** |
 | <img src="docs/screenshots/pdf-report.jpg" alt="PDF attendance report"> | <img src="docs/screenshots/pdf-seatmap.jpg" alt="PDF seat map page"> |
-| **First launch** | |
-| <img src="docs/screenshots/hero.jpg" alt="Welcome screen"> | |
+| **Bus groups (select mode)** | **First launch** |
+| <img src="docs/screenshots/bus-groups.jpg" alt="Participants panel in select mode: people ticked and grouped on a bus"> | <img src="docs/screenshots/hero.jpg" alt="Welcome screen"> |
 
 *All names in the screenshots and in `/samples` are invented.*
 
@@ -95,6 +96,7 @@ For this repository that is **https://schwi2807.github.io/attendance-pic/**.
 
 1. **Attendance tab** — search or scroll, tap **Present** / **Absent**. Use *Unmarked* to see who is missing.
 2. **Seating tab** — tap a person, then a seat. Or tap **Auto-fill**. Tap a seat to move, swap or unseat.
+   Want people split over the buses first? **Bus groups** (or **Select** in the panel) puts them on a bus — by hand or at random.
 3. **Export** (top right) — choose Excel, PDF (with or without seat maps), CSV or Backup → **Share…** to AirDrop / email it.
 
 ## Deploy your own copy (fork)
@@ -122,14 +124,14 @@ For this repository that is **https://schwi2807.github.io/attendance-pic/**.
 **Import** — any table with a header row. The importer guesses columns such as `Name` / `Nama` and
 `Matric No` / `No. Matrik` / `Student ID`, plus an optional **phone** column (`Phone`, `Tel`, `No. Tel`, `H/P`,
 `Mobile` …); you can change the mapping (the phone column also later, in the Event tab). Recognised and reused:
-`Present` (Present/Yes/Hadir/1 → present, Absent/No/0 → absent), `Seat`, `Remarks`, plus `Bus` and
-`Check-in Time` (so an exported file can be imported again).
+`Present` (Present/Yes/Hadir/1 → present, Absent/No/0 → absent), `Seat`, `Remarks`, plus `Bus` (a bus name
+without a seat becomes a bus group) and `Check-in Time` (so an exported file can be imported again).
 
 **Export** — the original columns, followed by:
 
 | Present | Bus | Seat | Remarks | Check-in Time |
 |---|---|---|---|---|
-| Present / Absent / blank | e.g. `One` | e.g. `3C`, `L3C`, `U3C` | free text | `HH:MM` (present only) |
+| Present / Absent / blank | e.g. `One` (the seat's bus, else the bus group) | e.g. `3C`, `L3C`, `U3C` | free text | e.g. `13 Oct 2026, 08:15` (present only) |
 
 Files are named `Attendance_<EventName>_<YYYY-MM-DD>.<ext>`. Before exporting, the app asks whether unmarked
 people should become **Absent** or stay **blank**.
@@ -154,11 +156,12 @@ Helper scripts:
 | `npm run icons` | Renders the PWA icons from the SVG logo. |
 | `npm run screenshots` | Regenerates the README screenshots with fake data. |
 
-**Tests** (`tests/*.spec.js`, 57 cases) cover import of all formats, delimiter detection, warnings,
+**Tests** (`tests/*.spec.js`, 64 cases) cover import of all formats, delimiter detection, warnings,
 marking/undo/filters/search/sort, auto bus count (60 people → 2 buses), every layout (2-2, 2-3, 1-2, 1-3),
 back bench, double-decker, flip, admin PIN lock/unlock/auto-lock/change, seat types changing capacity and
 bus count, non-admins blocked from seat types, assign/move/swap/unassign, auto-fill, phone numbers in the
-Seating tab (search, tap-to-call, masking), reload persistence,
+Seating tab (search, tap-to-call, masking), bus groups (tick, random, filter, export, auto-fill), VIP/reserved
+occupants counting as seated, reload persistence,
 XLSX/CSV/PDF (with and without seat maps)/JSON exports and restore, offline use via the service worker,
 the CSP, and **zero off-origin requests**.
 

@@ -7,6 +7,56 @@ export function hhmm(date = new Date()) {
   return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "13 Oct 2026" — unambiguous in any locale (no 13/10 vs 10/13 confusion). */
+export function dayText(date) {
+  return `${pad2(date.getDate())} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+/**
+ * Attendance time stamp as "{date}, {HH:mm}", e.g. "13 Oct 2026, 08:15".
+ * Records stamped by the app carry the full moment in `at`; times imported
+ * from a file without a date fall back to the event date.
+ */
+export function stampText(record, fallbackYmd = '') {
+  if (!record?.time) return '';
+  let d = record.at ? new Date(record.at) : null;
+  if ((!d || Number.isNaN(d.getTime())) && /^\d{4}-\d{2}-\d{2}$/.test(fallbackYmd)) {
+    const [y, m, dd] = fallbackYmd.split('-').map(Number);
+    d = new Date(y, m - 1, dd);
+  }
+  return d && !Number.isNaN(d.getTime()) ? `${dayText(d)}, ${record.time}` : record.time;
+}
+
+/**
+ * Reads a time stamp written by us or typed in a spreadsheet:
+ * "13 Oct 2026, 08:15", "13/10/2026 08:15", "13.10.2026 08.15", "2026-10-13T08:15", "08:15".
+ * @returns {{ time: string, at: string|null }}
+ */
+export function parseStamp(value) {
+  const s = String(value ?? '').trim();
+  // Blank out numeric dates first so "13.10.2026 08:15" is not read as 13:10.
+  const t = /(\d{1,2})[:.](\d{2})(?!\d)/.exec(s.replace(/\d{4}-\d{2}-\d{2}|\d{1,2}[./-]\d{1,2}[./-]\d{4}/g, ' '));
+  if (!t || Number(t[1]) > 23 || Number(t[2]) > 59) return { time: '', at: null };
+  const time = `${pad2(t[1])}:${t[2]}`;
+  let date = null;
+  let m;
+  if ((m = /(\d{1,2})\s+([A-Za-z]{3})[a-z]*\.?\s+(\d{4})/.exec(s))) {
+    const mi = MONTHS.findIndex((x) => x.toLowerCase() === m[2].toLowerCase());
+    if (mi >= 0) date = new Date(Number(m[3]), mi, Number(m[1]));
+  } else if ((m = /(\d{4})-(\d{2})-(\d{2})/.exec(s))) {
+    date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  } else if ((m = /(\d{1,2})[./-](\d{1,2})[./-](\d{4})/.exec(s))) {
+    date = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])); // day/month/year
+  }
+  if (date && !Number.isNaN(date.getTime())) {
+    date.setHours(Number(t[1]), Number(t[2]), 0, 0);
+    return { time, at: date.toISOString() };
+  }
+  return { time, at: null };
+}
+
 /** "YYYY-MM-DD" in the device's local time. */
 export function isoDate(date = new Date()) {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;

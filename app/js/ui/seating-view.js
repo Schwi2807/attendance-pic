@@ -8,6 +8,7 @@ import { renderHero } from './hero.js';
 import { renderBusSVG, seatStateFromStore } from './bus-svg.js';
 import { openLayoutEditor } from './layout-editor.js';
 import { describeConfig, computeGeometry } from '../domain/layout.js';
+import { busSummaryText } from '../domain/capacity.js';
 import { plural } from '../utils/format.js';
 import { installSeatInteractions } from './seat-interactions.js';
 
@@ -40,7 +41,7 @@ export function createSeatingView(ctx) {
   const { store, admin } = ctx;
   const el = h('section', { class: 'view view-seating', 'data-testid': 'seating-view' });
   /** Interaction state (seat assignment flows plug into this — see seat-interactions.js). */
-  const ui = { selectedPid: null, selectedSeatId: null, mode: null };
+  const ui = { selectedPid: null, selectedSeatId: null, mode: null, selecting: false, picked: new Set() };
   const api = { el, ui, render, refreshSeats, ctx, hooks: { panel: null, onSeatTap: null, toolbarExtras: null, banner: null } };
   let refs = null;
 
@@ -54,20 +55,16 @@ export function createSeatingView(ctx) {
         <svg class="cap-ring ${short ? 'is-short' : ''}" viewBox="0 0 46 46" aria-hidden="true"><circle class="bg" cx="23" cy="23" r="19"/><circle class="fg" cx="23" cy="23" r="19" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pct)).toFixed(1)}"/></svg>
         <div class="cap-text">
           <strong data-testid="bus-count">${plural(store.buses.length, 'bus', 'buses')} · ${cap.usable} usable seats</strong>
-          <small>${cap.needed} participants · ${short ? `<span class="badge badge--red">short by ${cap.needed - cap.usable}</span>` : `${cap.usable - cap.needed} spare`} · ${store.event.busMode === 'auto' ? 'auto bus count' : 'manual bus count'}</small>
+          <small>${cap.participants} participants${cap.inRestricted ? ` (${cap.inRestricted} in VIP/reserved seats)` : ''} · ${short ? `<span class="badge badge--red">short by ${cap.needed - cap.usable}</span>` : `${cap.usable - cap.needed} spare`} · ${store.event.busMode === 'auto' ? 'auto bus count' : 'manual bus count'}</small>
         </div>
       </div>`;
   }
 
   function busSummary(bus) {
     const s = store.busStats(bus);
-    const extras = [];
-    if (s.vip) extras.push(`${s.vip} VIP`);
-    if (s.reserved) extras.push(`${s.reserved} reserved`);
-    if (s.unavailable) extras.push(`${s.unavailable} unavailable`);
     return {
-      text: `${bus.name} — ${s.seated}/${s.usable} seated${extras.length ? ` · ${extras.join(' · ')}` : ''}`,
-      pct: s.usable ? Math.min(100, (s.seated / s.usable) * 100) : 0,
+      text: busSummaryText(bus, s),
+      pct: s.capacity ? Math.min(100, (s.occupied / s.capacity) * 100) : 0,
       stats: s,
     };
   }
@@ -255,7 +252,7 @@ export function createSeatingView(ctx) {
     else if (['assignments', 'seatTypes', 'attendance'].includes(d.type)) {
       refreshSeats();
       api.hooks.onDataChange?.(d);
-    } else if (d.type === 'settings' && d.key === 'maskIds') api.hooks.onDataChange?.(d);
+    } else if (d.type === 'allocations' || (d.type === 'settings' && d.key === 'maskIds')) api.hooks.onDataChange?.(d);
     else if (d.type === 'event') {
       const cap = el.querySelector('.cap-summary');
       if (cap) cap.outerHTML = capacityBlock();

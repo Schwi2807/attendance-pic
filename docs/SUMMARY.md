@@ -8,7 +8,7 @@ no backend, no data leaves the device.
 
 | Milestone | Delivered |
 |---|---|
-| **1. Storage, import, attendance, persistence** | Storage repository interface (`app/js/repo/repository.js`) with an IndexedDB implementation; the UI never touches IndexedDB. Import of `.xlsx`, `.csv`, `.txt` (comma / tab / semicolon detected), preview + Name/ID mapping + key-info columns, reuse of Present/Seat/Remarks (+ Bus / Check-in Time), duplicate-ID / empty-row / missing-value warnings, new-event or replace-list modes. Attendance list with sticky search, live counters + progress bar, filters, sorting, Present/Absent buttons, auto `HH:MM`, remarks, undo, admin "reset all" with confirmation, light/dark mode, ID masking. Event details form and multiple events per device. Autosave of everything. |
+| **1. Storage, import, attendance, persistence** | Storage repository interface (`app/js/repo/repository.js`) with an IndexedDB implementation; the UI never touches IndexedDB. Import of `.xlsx`, `.csv`, `.txt` (comma / tab / semicolon detected), preview + Name/ID mapping + key-info columns, reuse of Present/Seat/Remarks (+ Bus / Check-in Time), duplicate-ID / empty-row / missing-value warnings, new-event or replace-list modes. Attendance list with sticky search, live counters + progress bar, filters, sorting, Present/Absent buttons, auto check-in stamp (`13 Oct 2026, 08:15`), remarks, undo, admin "reset all" with confirmation, light/dark mode, ID masking. Event details form and multiple events per device. Autosave of everything. |
 | **2. Bus layout engine** | Pure JSON configs (single/double deck, 2-2 / 2-3 / 1-2 / 1-3, rows, back bench, driver side), pure seat enumeration / labels (`3C`, `L3C`, `U3C`) / stable seat IDs / geometry. Redbus-style top-down SVG coach (nose, windscreen, mirrors, wheels, driver + steering wheel, door, aisle, rear, stairs, luggage area), flip per bus, responsive scaling. Automatic bus count (usable = total − unavailable − reserved − VIP) recomputed on import / layout / seat-type changes, warnings before removing buses or seats with passengers, manual mode, default template, admin layout editor with live preview, add / rename / reorder / remove buses. |
 | **3. Seat assignment + admin + seat types** | Tap-tap seating (person → seat, or seat → searchable picker), seat sheet with Move / Swap / Unassign / Present / Absent, auto-fill (list order, front→back, lower deck first, skips non-available seats, never moves seated people, optional skip-absent), per-bus summaries, legend for all 7 seat states. PIN on first launch (salted SHA-256), unlock pad, 5-minute idle auto-lock, ADMIN indicator with countdown, change PIN, forgot-PIN erase. Admin-only seat types (seat sheet or "paint" tool) with labels; admins may seat people in Reserved/VIP seats. |
 | **4. Exports** | XLSX (original columns + Present, Bus, Seat, Remarks, Check-in Time; Absent rows `#FDE2E2`; Event sheet), CSV (UTF-8 BOM, injection-safe), PDF (A4, auto landscape, header with counts, repeated table header, Absent rows `#FDE2E2`, page numbers; optional seat maps — one page per deck), JSON backup + admin-only restore. Unmarked → "mark Absent" or "leave blank" prompt. `Attendance_<EventName>_<YYYY-MM-DD>.<ext>`. Web Share API with files, download fallback. |
@@ -20,21 +20,22 @@ Run in this environment: `npx playwright test` — **Chromium**, `iPad Pro 11 la
 (1194 × 834, touch, mobile), app served under `/attendance-pic/` like GitHub Pages.
 
 ```
-Running 57 tests using 4 workers (Chromium, iPad Pro 11 landscape)
+Running 64 tests using 4 workers (Chromium, iPad Pro 11 landscape)
 
   ✓ admin.spec.js           4 passed
   ✓ attendance.spec.js     10 passed
   ✓ buses.spec.js          15 passed
   ✓ export.spec.js          6 passed
+  ✓ groups.spec.js          6 passed
   ✓ import.spec.js          5 passed
   ✓ offline.spec.js         4 passed
   ✓ persistence.spec.js     1 passed
   ✓ phone.spec.js           4 passed
   ✓ precache.spec.js        1 passed
   ✓ privacy.spec.js         1 passed
-  ✓ seating.spec.js         6 passed
+  ✓ seating.spec.js         7 passed
 
-  57 passed — 0 failed, 0 flaky
+  64 passed — 0 failed, 0 flaky
 ```
 
 Coverage of the brief's quality list:
@@ -51,11 +52,13 @@ Coverage of the brief's quality list:
 | admin PIN lock / unlock | `admin.spec.js` — first-launch PIN, unlock, wrong PIN, manual lock, 5-min auto-lock (fake clock), change PIN |
 | seat types reduce capacity → bus count updates | `buses.spec.js` › seat types reduce capacity… |
 | non-admin cannot set seat types | `buses.spec.js` › non-admin cannot set seat types; `seating.spec.js` › VIP |
-| assign / move / swap | `seating.spec.js` |
+| assign / move / swap | `seating.spec.js` (incl. the portrait slide-over panel) |
 | auto-fill | `seating.spec.js` (two tests incl. double-decker order) |
 | reload persistence | `persistence.spec.js` |
 | all exports incl. PDF with and without seat maps | `export.spec.js` (XLSX fill check, CSV, PDF table, PDF + maps, maps only, JSON backup + restore) |
 | no off-origin network requests | `privacy.spec.js` + an auto fixture on **every** test (records, aborts and fails on any off-origin request, CSP violation or page error) |
+| bus groups (after v1.0) | `groups.spec.js` — tick + put on bus + auto-fill on that bus, over-capacity warning, search a group + random, balanced random for everyone + attendance bus filter + undo, Bus column in the export, VIP-seated people counted as seated |
+| phone numbers (after v1.0) | `phone.spec.js` |
 | offline | `offline.spec.js` (every file in the SW cache — both browsers; offline reload + offline PDF export — Chromium), manifest, CSP; `precache.spec.js` |
 
 **GitHub Actions** (last run before the phone-number tests were added):
@@ -88,6 +91,17 @@ rendered and inspected.
 - **PIN is a guard-rail**, not encryption. Forgot PIN = erase app data (then restore a backup).
 - One attendance session per event in the UI (model supports more). Undo history is in memory only.
 - Web Share with files depends on the browser (iPad Safari: yes; desktop Chromium on Linux: falls back to download).
+
+## Added after v1.0
+
+- **Phone numbers** in the Seating tab (panel, seat picker, seat sheet with tap-to-call), maskable.
+- **Bus groups**: put people on a bus before seating — tick them (or search a group and select all shown),
+  or spread them randomly and evenly; shown and filterable in Attendance, used by auto-fill, exported in *Bus*.
+- People seated in **VIP / reserved** seats now count as seated (bus summary, PDF seat maps) and reduce the
+  seats the automatic bus count needs.
+- Check-in stamp is now **`dd Mon yyyy, HH:mm`** in the app and in every export.
+- **Fixed:** in portrait (narrower than 1000 px) the *People* button that opens the participants panel was
+  hidden by a CSS ordering mistake; it now shows, and the panel has a close button.
 - Service-worker updates apply after tapping **Reload** on the update toast (or after all app windows close).
 
 ## After v1.0: phone numbers in the Seating tab

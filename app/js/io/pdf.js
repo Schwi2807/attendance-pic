@@ -5,7 +5,7 @@
 import { getJsPDF } from './vendor.js';
 import { buildExportTable, eventInfoLines } from './export.js';
 import { computeGeometry, toScreen, toScreenPoint, GEO } from '../domain/layout.js';
-import { busStats } from '../domain/capacity.js';
+import { busStats, busSummaryText } from '../domain/capacity.js';
 
 const C = {
   brand: [61, 90, 254],
@@ -192,8 +192,7 @@ function drawDeckPage(doc, store, bus, geo, deck) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9.5);
   doc.setTextColor(...C.ink2);
-  const extras = [s.vip ? `${s.vip} VIP` : '', s.reserved ? `${s.reserved} reserved` : '', s.unavailable ? `${s.unavailable} unavailable` : ''].filter(Boolean);
-  doc.text(pdfSafe(`${bus.name} — ${s.seated}/${s.usable} seated${extras.length ? ` · ${extras.join(' · ')}` : ''}`), 21, 24);
+  doc.text(pdfSafe(busSummaryText(bus, s)), 21, 24);
   doc.setFontSize(8.5);
   doc.setTextColor(...C.ink3);
   doc.text(pdfSafe([info.title, ...info.meta].join('  ·  ')), W - 14, 18, { align: 'right', maxWidth: 140 });

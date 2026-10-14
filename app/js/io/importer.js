@@ -8,6 +8,7 @@
 
 import { newId } from '../utils/ids.js';
 import { emptyAttendance, STATUS } from '../domain/model.js';
+import { parseStamp } from '../utils/format.js';
 
 const PATTERNS = {
   name: [/^(full\s*)?name$/i, /^nama(\s*penuh)?$/i, /^(student|participant|peserta)\s*name$/i, /name|nama/i],
@@ -82,14 +83,6 @@ export function parsePresentValue(v) {
   return null;
 }
 
-function parseTime(v) {
-  const m = /(\d{1,2})[:.](\d{2})/.exec(String(v ?? ''));
-  if (!m) return '';
-  const h = Number(m[1]);
-  const mi = Number(m[2]);
-  return h < 24 && mi < 60 ? `${String(h).padStart(2, '0')}:${m[2]}` : '';
-}
-
 /**
  * Checks a table + mapping and returns warnings without changing anything.
  */
@@ -133,6 +126,7 @@ export function buildParticipants(table, mapping, eventId, sessionId) {
   const participants = [];
   const attendance = [];
   const seatRequests = [];
+  const busRequests = []; // a Bus value without a seat = that person's bus group
   table.records.forEach((rec, order) => {
     const pid = newId('p');
     const original = {};
@@ -154,9 +148,10 @@ export function buildParticipants(table, mapping, eventId, sessionId) {
     const a = emptyAttendance(sessionId, pid);
     if (pi >= 0) a.status = parsePresentValue(rec.cells[pi]);
     if (ri >= 0) a.remarks = rec.cells[ri] || '';
-    if (a.status && ti >= 0) a.time = parseTime(rec.cells[ti]);
+    if (a.status && ti >= 0) Object.assign(a, parseStamp(rec.cells[ti]));
     attendance.push(a);
     if (si >= 0 && rec.cells[si]) seatRequests.push({ participantId: pid, seat: rec.cells[si], bus: bi >= 0 ? rec.cells[bi] : '' });
+    else if (bi >= 0 && rec.cells[bi]) busRequests.push({ participantId: pid, bus: rec.cells[bi] });
   });
 
   const columns = {
@@ -167,5 +162,5 @@ export function buildParticipants(table, mapping, eventId, sessionId) {
     keyInfo: [...(mapping.keyInfo || [])],
     reused: { present: r.present || '', seat: r.seat || '', remarks: r.remarks || '', bus: r.bus || '', time: r.time || '' },
   };
-  return { participants, attendance, seatRequests, columns };
+  return { participants, attendance, seatRequests, busRequests, columns };
 }

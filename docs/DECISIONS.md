@@ -21,7 +21,7 @@ reasoning, so it can be revisited later.
 | # | Decision | Why |
 |---|----------|-----|
 | I1 | The header is the **first non-empty row** (toggle "First row is the header" off to get "Column 1…N"). Blank/duplicate header names are made unique. | Handles most lecturer spreadsheets; a toggle covers files without headers. |
-| I2 | Besides Present / Seat / Remarks, the importer also recognises **Bus** and **Check-in Time** columns. | Those are written by our own export, so an exported file can be re-imported without losing seats or times. |
+| I2 | Besides Present / Seat / Remarks, the importer also recognises **Bus** and **Check-in Time** columns. A Bus value without a Seat becomes a bus group. | Those are written by our own export, so an exported file can be re-imported without losing seats, groups or times. |
 | I3 | Present values understood: present/p/yes/y/1/true/hadir/✓ → Present; absent/a/no/n/0/false/tidak hadir → Absent; anything else → unmarked. | Covers English and Malay lists. |
 | I4 | **Duplicate IDs are imported, not dropped** (after a warning and confirmation). Rows with only a name or only an ID are kept with a warning; completely empty rows are skipped. | Losing a participant silently is worse than a duplicate the PIC can see. |
 | I5 | Importing when an event already exists offers **"New event"** (default) or **"Replace list"** (keeps details, buses and seat types; clears attendance and seats). | Both workflows are common: a new trip vs. a corrected list. |
@@ -35,9 +35,11 @@ reasoning, so it can be revisited later.
 | T1 | Tapping the active button again **un-marks** the row. | Fast correction; undo is still available. |
 | T2 | Time stamp is set on the **first status change**, **refreshed on Absent → Present** (that is the real check-in of a latecomer) and **cleared when un-marked**. | Keeps "Check-in Time" truthful in the export. |
 | T3 | Export column "Check-in Time" is filled only for **Present** rows. | An absent person has no check-in. |
-| T4 | Undo covers marks, remarks, bulk "mark unmarked absent", seat moves/swaps/auto-fill, seat types and resets (50 steps, in memory). Structural bus changes clear the undo history. | Old seat snapshots would point at seats that no longer exist. |
+| T4 | Undo covers marks, remarks, bulk "mark unmarked absent", seat moves/swaps/auto-fill, bus groups, seat types and resets (50 steps, in memory). Structural bus changes clear the undo history. | Old seat snapshots would point at seats that no longer exist. |
 | T5 | Search also matches an exact seat label (e.g. "3C"). | Handy when someone says "I'm in 3C". |
 | T6 | Rows that stop matching the active filter slide out after marking. | With the "Unmarked" filter the list shrinks as people are ticked off. |
+| T7 | The check-in stamp is shown and exported as **`dd Mon yyyy, HH:mm`** (e.g. `13 Oct 2026, 08:15`, 24-hour clock), taken from the moment of marking. Older records that only stored `HH:MM` fall back to the event date. The importer reads this format back, plus `2026-10-13T08:15`, `13/10/2026 08:15`, `13.10.2026 08.15` (day first) and a bare `08:15`. | Requested after v1.0. A spelled-out month cannot be misread as day/month vs. month/day, whichever locale the lecturer's Excel uses. |
+| T8 | The Attendance tab gets a **bus filter** (All buses · each bus · No bus yet), matching the seat's bus or, for unseated people, their bus group. | Lets one PIC per bus check in only their own passengers. |
 
 ## Bus layouts & rendering
 
@@ -64,7 +66,9 @@ reasoning, so it can be revisited later.
 | S4 | Admins get a **"Seat types" paint tool**: choose Unavailable / Reserved / VIP / Available (+ optional label) and tap seats; tapping a seat that already has the chosen type resets it to Available. Single seats can also be set from the seat sheet. | Marking many broken seats one sheet at a time would be slow. |
 | S5 | Marking an **occupied** seat **Unavailable** asks to unseat the passenger. Marking an occupied seat Reserved/VIP keeps the passenger (an admin may seat people there). | Unavailable seats cannot hold anyone; Reserved/VIP can, by admins. |
 | S6 | Non-admins tapping a Reserved/VIP seat see who it is reserved for and can unlock admin mode from there. | Clear feedback instead of a dead tap. |
-| S7 | The per-bus summary counts passengers in normal seats against usable seats ("One — 36/38 seated · 1 VIP · 1 reserved"). | Matches the brief's example format. |
+| S7 | The per-bus summary counts **everyone seated**, including people an admin put in a VIP/reserved seat, against usable seats plus those occupied VIP/reserved seats ("One — 37/39 seated · 1 VIP · 1 reserved"). | Matches the brief's example format. Changed after v1.0: occupied VIP/reserved seats were missing from the count. |
+| S12 | The automatic bus count needs seats for **participants − people already in VIP/reserved seats**, so seating someone there can free up a bus. | Those people have a seat; reserving a normal seat for them too would over-count. |
+| S13 | **Bus groups**: a participant can be put on a bus without a seat (stored as `busId` on their attendance record, so it belongs to the session like seats do). Set by hand (Select mode: tick people or *All shown* after a search → *Put on bus…*) or **at random** (crypto-random shuffle, each person goes to the bus with the most room left, so buses fill evenly). Over-filling a bus is allowed but reported in both cases; auto-fill then leaves the extra people waiting. While someone is seated, the seat's bus is their bus (the group is kept in case they are unseated); auto-fill seats grouped people on their own bus first, then everyone else front to back. Undoable. | Requested after v1.0: the PIC wants to split people over buses before seating, by hand or randomly. Random is balanced rather than "fill bus One first" so each bus gets a fair share. |
 | S8 | Admin UI elements are **hidden while locked**; actions that need admin (e.g. "Buses", reset, delete event) prompt for the PIN. The top bar shows an amber **ADMIN** pill with the auto-lock countdown and a striped amber line. | Non-admins are not confronted with controls they cannot use, yet admin actions remain discoverable. |
 | S9 | Wrong PIN 5× → 30 s cool-down. **Forgot PIN** = erase all app data on this device (after typing ERASE); backups can be restored afterwards. | A local-only PIN cannot be recovered; erasing keeps the data protected. |
 | S10 | The PIN is stored as a salted SHA-256 hash; PIN length is stored so the pad can auto-submit. | Convenience; the PIN is a guard-rail, not a security boundary. |
@@ -74,7 +78,7 @@ reasoning, so it can be revisited later.
 
 | # | Decision | Why |
 |---|----------|-----|
-| E1 | Export columns = original columns **except** the ones the app manages (an imported Present / Seat / Remarks / Bus / Check-in column), followed by **Present, Bus, Seat, Remarks, Check-in Time**. | Avoids two "Present" columns with conflicting values; a re-import round-trips cleanly. |
+| E1 | Export columns = original columns **except** the ones the app manages (an imported Present / Seat / Remarks / Bus / Check-in column), followed by **Present, Bus, Seat, Remarks, Check-in Time**. *Bus* is the seat's bus, else the person's bus group. | Avoids two "Present" columns with conflicting values; a re-import round-trips cleanly. |
 | E2 | "Mark them Absent" before export is **saved** to the list (and can be undone); "Leave blank" leaves the Present cell empty. | The export then matches what the app shows. |
 | E3 | XLSX: bold header with an underline, auto column widths, auto-filter, **#FDE2E2 fill on every cell of Absent rows**, no other fills; plain integers are written as numbers, everything else (IDs, phones with leading zeros) as text. A second sheet "Event" holds event details and counts. | Clean for the lecturer; no "number stored as text" noise and no lost leading zeros. |
 | E4 | CSV: UTF-8 **with BOM**, CRLF, RFC-4180 quoting; cells beginning with `= + - @` are prefixed with `'` (unless they are plain numbers). | Excel opens UTF-8 correctly; prevents spreadsheet formula injection. |

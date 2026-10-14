@@ -131,6 +131,25 @@ async function fill(page, pin) {
   await shoot(page, 'attendance-portrait-dark');
   await ctx.close();
 }
+// 7. Bus groups: one group put on bus Two, a few more people ticked
+{
+  const { ctx, page } = await prepared();
+  await page.getByTestId('hero-sample').click();
+  await page.getByTestId('confirm-import').click();
+  await page.waitForURL(/#\/attendance$/);
+  await page.locator('[data-route=seating]').click();
+  await page.getByTestId('select-mode').click();
+  await page.getByTestId('panel-search').fill('G1');
+  await page.getByTestId('pick-all').click();
+  await page.getByTestId('pick-assign').click();
+  await page.locator('.choice', { hasText: 'Bus Two' }).click();
+  await page.getByTestId('panel-search').fill('');
+  const people = page.getByTestId('panel-list').getByTestId('person');
+  for (const i of [0, 2, 3]) await people.nth(i).click();
+  await page.evaluate(() => { document.querySelectorAll('.toast').forEach((t) => t.remove()); window.scrollTo(0, 0); });
+  await shoot(page, 'bus-groups');
+  await ctx.close();
+}
 
 await browser.close();
 server.kill();

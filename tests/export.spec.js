@@ -61,7 +61,7 @@ test.describe('Exports', () => {
     expect(rows).toHaveLength(61);
     expect(rows[1].slice(1, 3)).toEqual(['Aiman bin Rahman', 'AD250001']);
     expect(rows[1].slice(6, 9)).toEqual(['Present', 'One', '1A']);
-    expect(rows[1][10]).toMatch(/^\d{2}:\d{2}$/);
+    expect(rows[1][10]).toMatch(/^\d{2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2}$/); // "13 Oct 2026, 08:15"
     expect(rows[6].slice(6, 9)).toEqual(['Absent', 'One', '2B']);
     expect(rows[6][10]).toBe(''); // no check-in time for absentees
     expect(rows[5][9]).toBe('Vegetarian meal');
@@ -91,7 +91,8 @@ test.describe('Exports', () => {
     expect(text.startsWith('﻿')).toBe(true);
     const lines = text.slice(1).split('\r\n');
     expect(lines[0]).toBe('No,Name,Matric No,Programme,Group,Phone,Present,Bus,Seat,Remarks,Check-in Time');
-    expect(lines[1]).toMatch(/^1,Aiman bin Rahman,AD250001,Civil Engineering,G1,012-555 1000,Present,One,1A,,\d{2}:\d{2}$/);
+    // The time stamp contains a comma, so CSV quotes it.
+    expect(lines[1]).toMatch(/^1,Aiman bin Rahman,AD250001,Civil Engineering,G1,012-555 1000,Present,One,1A,,"\d{2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2}"$/);
     expect(lines[6]).toMatch(/,Absent,One,2B,,$/);
   });
 

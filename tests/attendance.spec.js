@@ -8,7 +8,10 @@ test.describe('Attendance', () => {
     await r0.getByTestId('btn-present').click();
     await expect(r0).toHaveAttribute('data-status', 'present');
     await expect(r0.getByTestId('btn-present')).toHaveAttribute('aria-pressed', 'true');
-    await expect(r0.getByTestId('att-time')).toHaveText(/^\d{2}:\d{2}$/);
+    // "{date}, {HH:mm}", e.g. "13 Oct 2026, 08:15" — today's date
+    const now = new Date();
+    const today = `${String(now.getDate()).padStart(2, '0')} ${now.toLocaleString('en', { month: 'short' })} ${now.getFullYear()}`;
+    await expect(r0.getByTestId('att-time')).toHaveText(new RegExp(`^${today}, \\d{2}:\\d{2}$`));
     await row(page, 1).getByTestId('btn-absent').click();
     await expect(page.getByTestId('counter')).toHaveAttribute('aria-label', '1 present, 1 absent, 58 unmarked of 60');
     // tapping the active button again un-marks

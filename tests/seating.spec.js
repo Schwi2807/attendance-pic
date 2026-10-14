@@ -21,6 +21,22 @@ test.describe('Seat assignment', () => {
     await expect(row(page, 0).getByTestId('att-seat')).toHaveText('One · 1A');
   });
 
+  test('portrait: People opens the participants panel; picking someone closes it', async ({ page }) => {
+    await page.setViewportSize({ width: 834, height: 1194 });
+    const panel = page.getByTestId('seat-panel');
+    await expect(panel).not.toBeInViewport();
+    await page.locator('[data-act=panel]').click();
+    await expect(panel).toBeInViewport();
+    await expect(page.getByTestId('select-mode')).toBeInViewport();
+    await page.getByTestId('panel-close').click();
+    await expect(panel).not.toBeInViewport();
+    await page.locator('[data-act=panel]').click();
+    await panel.getByTestId('person').first().click();
+    await expect(panel).not.toBeInViewport();
+    await seat(page, 0, '1A').click();
+    await expect(seat(page, 0, '1A')).toContainText('Aiman');
+  });
+
   test('move, swap and unassign', async ({ page }) => {
     await page.getByTestId('person').first().click();
     await seat(page, 0, '1A').click();

@@ -34,10 +34,12 @@ export function installSeatInteractions(view) {
     const tel = ph.replace(/[^\d+]/g, '');
     return `<a class="phone-chip" href="tel:${esc(tel)}" data-testid="sheet-phone">${icon('phone')}${esc(ph)}</a>`;
   };
-  // Search matches name, ID and phone (digits only, so "0125551000" finds "012-555 1000").
+  // Search matches name, ID, phone (digits only, so "0125551000" finds "012-555 1000")
+  // and every other column of the list (programme, group…) — handy for
+  // ticking a whole group before putting it on a bus.
   const haystack = (p) => {
     const ph = store.phoneOf(p);
-    return `${norm(`${p.name} ${p.studentId} ${ph}`)} ${ph.replace(/\D/g, '')}`;
+    return `${norm(`${p.name} ${p.studentId} ${ph} ${Object.values(p.original || {}).join(' ')}`)} ${ph.replace(/\D/g, '')}`;
   };
   const seatInfo = (seatId) => store.seatIndex.get(seatId);
   const seatName = (seatId) => {
@@ -73,11 +75,13 @@ export function installSeatInteractions(view) {
   view.hooks.panel = (panel) => {
     panel.innerHTML = `
       <div class="seat-panel-head">
-        <h3>${icon('users')} Participants <span class="badge" data-testid="unseated-count"></span></h3>
-        <label class="search">${icon('search')}<input type="search" placeholder="Search name, ID or phone" data-testid="panel-search" autocomplete="off" spellcheck="false"></label>
+        <h3>${icon('users')} Participants <span class="badge" data-testid="unseated-count"></span><button class="icon-btn panel-close" type="button" data-testid="panel-close" aria-label="Close the participants list">${icon('x')}</button></h3>
+        <div class="row"><label class="search grow">${icon('search')}<input type="search" placeholder="Name, ID, phone…" data-testid="panel-search" autocomplete="off" spellcheck="false"></label>
+          <button class="btn btn-secondary" type="button" data-testid="select-mode" aria-pressed="${Boolean(ui.selecting)}">${icon('check')}<span>${ui.selecting ? 'Done' : 'Select'}</span></button></div>
       </div>
-      <ul class="panel-list" data-testid="panel-list"></ul>`;
-    panelRefs = { list: panel.querySelector('.panel-list'), search: panel.querySelector('input'), count: panel.querySelector('[data-testid=unseated-count]'), panel };
+      <ul class="panel-list" data-testid="panel-list"></ul>
+      <div class="panel-foot" data-testid="select-bar" ${ui.selecting ? '' : 'hidden'}></div>`;
+    panelRefs = { list: panel.querySelector('.panel-list'), search: panel.querySelector('input'), count: panel.querySelector('[data-testid=unseated-count]'), foot: panel.querySelector('.panel-foot'), panel };
     panelRefs.search.value = panelQuery;
     panelRefs.search.addEventListener(
       'input',
@@ -86,10 +90,19 @@ export function installSeatInteractions(view) {
         renderPanelList();
       }, 90),
     );
+    panel.querySelector('[data-testid=select-mode]').addEventListener('click', () => setSelecting(!ui.selecting));
+    panel.querySelector('[data-testid=panel-close]').addEventListener('click', () => panel.classList.remove('is-open'));
+    panelRefs.foot.addEventListener('click', onFootClick);
     panelRefs.list.addEventListener('click', (e) => {
       const b = e.target.closest('[data-pid]');
       if (!b) return;
       const pid = b.dataset.pid;
+      if (ui.selecting) {
+        if (ui.picked.has(pid)) ui.picked.delete(pid);
+        else ui.picked.add(pid);
+        renderPanelList();
+        return;
+      }
       if (ui.mode === 'paint') clearMode();
       ui.mode = null;
       ui.selectedSeatId = null;
@@ -102,15 +115,18 @@ export function installSeatInteractions(view) {
     renderPanelList();
   };
 
-  function personButton(p) {
+  function personButton(p, { pickable = false } = {}) {
     const seat = store.seatLabelOf(p.id);
+    const group = seat ? '' : store.busName(store.allocatedBusOf(p.id));
     const st = statusOf(p.id);
-    return `<li><button type="button" class="person ${ui.selectedPid === p.id ? 'is-selected' : ''} ${st === 'present' ? 'is-present' : st === 'absent' ? 'is-absent' : ''}" data-pid="${p.id}" data-testid="person">
+    const picked = pickable && ui.selecting && ui.picked.has(p.id);
+    return `<li><button type="button" class="person ${ui.selectedPid === p.id && !ui.selecting ? 'is-selected' : ''} ${picked ? 'is-picked' : ''} ${st === 'present' ? 'is-present' : st === 'absent' ? 'is-absent' : ''}" data-pid="${p.id}" data-testid="person" ${pickable && ui.selecting ? `aria-pressed="${picked}"` : ''}>
+      ${pickable && ui.selecting ? `<span class="pick-box" aria-hidden="true">${icon('check')}</span>` : ''}
       <span class="avatar">${esc(initials(p.name))}<span class="tick">${icon('check')}</span></span>
       <span class="p-main"><span class="p-name">${esc(p.name)}</span><span class="p-sub"><span class="mono" data-testid="person-id">${esc(showId(p))}</span>${(() => {
         const ph = showPhone(p);
         return ph ? `<span class="p-phone mono" data-testid="person-phone">${icon('phone')}${esc(ph)}</span>` : '';
-      })()}${seat ? `<span class="seat-tag">${esc(seat.bus)} · ${esc(seat.label)}</span>` : ''}</span></span>
+      })()}${seat ? `<span class="seat-tag">${esc(seat.bus)} · ${esc(seat.label)}</span>` : group ? `<span class="seat-tag is-group" data-testid="person-group">Bus ${esc(group)}</span>` : ''}</span></span>
     </button></li>`;
   }
 
@@ -122,13 +138,118 @@ export function installSeatInteractions(view) {
     panelRefs.count.textContent = `${unseated.length} unseated`;
     const u = unseated.filter(match);
     const s = seated.filter(match);
+    const btn = (p) => personButton(p, { pickable: true });
     panelRefs.list.innerHTML =
-      `<li class="panel-group">Unseated · ${u.length}</li>${u.map(personButton).join('') || '<li class="subtle panel-group">Everyone is seated 🎉</li>'}` +
-      `<li class="panel-group">Seated · ${s.length}</li>${s.map(personButton).join('')}`;
+      `<li class="panel-group">Unseated · ${u.length}</li>${u.map(btn).join('') || '<li class="subtle panel-group">Everyone is seated 🎉</li>'}` +
+      `<li class="panel-group">Seated · ${s.length}</li>${s.map(btn).join('')}`;
+    renderFoot(u.concat(s));
+  }
+
+  // ── bus groups: select people, then put them on a bus or shuffle ─────────
+  let visible = [];
+  function renderFoot(list) {
+    visible = list;
+    if (!panelRefs.foot) return;
+    panelRefs.foot.hidden = !ui.selecting;
+    const n = ui.picked.size;
+    panelRefs.foot.innerHTML = `
+      <div class="row"><strong class="grow" data-testid="picked-count">${n} selected</strong>
+        <button class="btn btn-sm btn-ghost" type="button" data-f="all" data-testid="pick-all">All shown</button>
+        <button class="btn btn-sm btn-ghost" type="button" data-f="none">None</button></div>
+      <div class="row">
+        <button class="btn btn-sm btn-primary grow" type="button" data-f="assign" data-testid="pick-assign" ${n ? '' : 'disabled'}>${icon('bus')}<span>Put on bus…</span></button>
+        <button class="btn btn-sm btn-secondary grow" type="button" data-f="random" data-testid="pick-random" ${n ? '' : 'disabled'}>${icon('sparkles')}<span>Random</span></button>
+      </div>`;
+  }
+
+  function setSelecting(on) {
+    ui.selecting = on;
+    ui.picked = new Set();
+    if (on) {
+      ui.selectedPid = null;
+      ui.mode = ui.mode === 'paint' ? ui.mode : null;
+      panelRefs?.panel.classList.add('is-open');
+    }
+    const b = panelRefs?.panel.querySelector('[data-testid=select-mode]');
+    if (b) {
+      b.setAttribute('aria-pressed', String(on));
+      b.querySelector('span').textContent = on ? 'Done' : 'Select';
+    }
+    renderPanelList();
+    renderBanner();
+    view.refreshSeats();
+  }
+
+  async function chooseBus(title, message) {
+    return choiceDialog({
+      title,
+      message,
+      options: [
+        ...[...store.buses]
+          .sort((a, b) => a.order - b.order)
+          .map((b) => ({ value: b.id, label: `Bus ${b.name}`, description: `${Math.max(0, store.busRoomLeft(b.id))} free seats left`, icon: 'bus' })),
+        { value: '__none', label: 'No bus', description: 'Remove them from any bus group', icon: 'minus' },
+      ],
+    });
+  }
+
+  function groupSummary(plan) {
+    return [...plan.entries()].filter(([, l]) => l.length).map(([id, l]) => `${store.busName(id)} ${l.length}`).join(' · ');
+  }
+
+  async function onFootClick(e) {
+    const f = e.target.closest('[data-f]')?.dataset.f;
+    if (!f) return;
+    if (f === 'all') visible.forEach((p) => ui.picked.add(p.id));
+    else if (f === 'none') ui.picked.clear();
+    else if (f === 'assign') {
+      const pids = [...ui.picked];
+      const busId = await chooseBus(`Put ${plural(pids.length, 'person', 'people')} on…`, 'People who already have a seat keep it; their bus group is used for auto-fill and the export.');
+      if (!busId) return;
+      // Allowed (it is the PIC's call), but say so when the bus cannot seat them all.
+      const unseated = pids.filter((pid) => !store.seatOf.has(pid));
+      const over = busId === '__none' ? 0 : Math.max(0, unseated.length - Math.max(0, store.busRoomLeft(busId, { ignore: new Set(unseated) })));
+      await store.setBusGroup(pids, busId === '__none' ? '' : busId);
+      ui.picked.clear();
+      toast(busId === '__none' ? `Cleared the bus for ${pids.length}` : `${plural(pids.length, 'person', 'people')} → Bus ${store.busName(busId)}${over ? ` · ${over} over capacity` : ''}`, { kind: over ? 'warn' : 'success', action: { label: 'Undo', onClick: () => store.undo() } });
+    } else if (f === 'random') {
+      const res = await store.randomBusGroups([...ui.picked]);
+      ui.picked.clear();
+      if (!res.count) toast('Everyone selected already has a seat, so their bus is fixed.', { kind: 'warn' });
+      else toast(`Randomly grouped ${res.count}: ${groupSummary(res.plan)}${res.overflow ? ` · ${res.overflow} over capacity` : ''}`, { kind: res.overflow ? 'warn' : 'success', duration: 5000, action: { label: 'Undo', onClick: () => store.undo() } });
+    }
+    renderPanelList();
+  }
+
+  async function busGroupsMenu() {
+    const unseated = store.participants.filter((p) => !store.seatOf.has(p.id));
+    const ungrouped = unseated.filter((p) => !store.allocatedBusOf(p.id));
+    const grouped = unseated.filter((p) => store.allocatedBusOf(p.id));
+    const choice = await choiceDialog({
+      title: 'Bus groups',
+      message: 'Decide which bus people take before seating them. Auto-fill then seats each person on their own bus.',
+      options: [
+        { value: 'pick', label: 'Pick people…', description: 'Tick people in the list, then put them on a bus or shuffle them', icon: 'check' },
+        { value: 'random-new', label: `Randomly assign ${plural(ungrouped.length, 'person', 'people')} without a bus`, description: 'Balanced so every bus has about the same free seats', icon: 'sparkles' },
+        { value: 'random-all', label: `Re-shuffle all ${unseated.length} without a seat`, description: 'Ignores the current groups', icon: 'refresh' },
+        { value: 'clear', label: `Clear ${plural(grouped.length, 'bus group')}`, description: 'Seated people keep their seats', icon: 'minus', kind: 'danger' },
+      ],
+    });
+    if (choice === 'pick') setSelecting(true);
+    else if (choice === 'random-new' || choice === 'random-all') {
+      const res = await store.randomBusGroups((choice === 'random-new' ? ungrouped : unseated).map((p) => p.id));
+      if (!res.count) return toast('Nobody to group.', { kind: 'warn' });
+      toast(`Randomly grouped ${res.count}: ${groupSummary(res.plan)}${res.overflow ? ` · ${res.overflow} over capacity` : ''}`, { kind: res.overflow ? 'warn' : 'success', duration: 5000, action: { label: 'Undo', onClick: () => store.undo() } });
+    } else if (choice === 'clear') {
+      if (!grouped.length) return;
+      await store.setBusGroup(grouped.map((p) => p.id), '', `Cleared ${grouped.length} bus groups`);
+      toast(`Cleared ${plural(grouped.length, 'bus group')}`, { action: { label: 'Undo', onClick: () => store.undo() } });
+    }
   }
 
   // ── toolbar extras ────────────────────────────────────────────────────────
   view.hooks.toolbarExtras = () => [
+    h('button', { class: 'btn btn-sm btn-secondary', type: 'button', 'data-testid': 'bus-groups', html: `${icon('users')}<span>Bus groups</span>`, onclick: busGroupsMenu }),
     h('button', { class: 'btn btn-sm btn-primary', type: 'button', 'data-testid': 'auto-fill', html: `${icon('sparkles')}<span>Auto-fill</span>`, onclick: autoFill }),
     h('button', { class: 'btn btn-sm btn-warn admin-only', type: 'button', 'data-testid': 'paint-types', html: `${icon('paint')}<span>Seat types</span>`, onclick: startPaint }),
   ];
@@ -416,7 +537,7 @@ export function installSeatInteractions(view) {
     const box = h('input', { type: 'checkbox', checked: true, 'data-testid': 'skip-absent' });
     const absentCount = planAll.waiting - plan.waiting;
     const msg = h('div', { class: 'stack' },
-      h('p', { class: 'ov-message', html: `Seats <strong>${planAll.waiting}</strong> unseated participant(s) in list order, front to back, lower deck first. Unavailable, Reserved and VIP seats are skipped. <strong>Nobody already seated is moved.</strong>` }),
+      h('p', { class: 'ov-message', html: `Seats <strong>${planAll.waiting}</strong> unseated participant(s) in list order, front to back, lower deck first. People with a <strong>bus group</strong> are seated on their own bus. Unavailable, Reserved and VIP seats are skipped. <strong>Nobody already seated is moved.</strong>` }),
       absentCount ? h('label', { class: 'check' }, box, h('span', {}, `Skip ${plural(absentCount, 'person', 'people')} marked Absent`)) : null,
       planAll.freeSeats < planAll.waiting ? h('div', { class: 'notice notice--warn', html: `${icon('alert')}<div>Only ${planAll.freeSeats} free seat(s) — ${planAll.waiting - planAll.freeSeats} will stay unseated.</div>` }) : null,
     );
@@ -425,7 +546,7 @@ export function installSeatInteractions(view) {
     if (!(await ov.closed)) return;
     const res = await store.autoFill({ skipAbsent: absentCount ? box.checked : false });
     clearMode();
-    toast(`Seated ${res.list.length}${res.leftover ? ` · ${res.leftover} still without a seat` : ''}`, { kind: res.leftover ? 'warn' : 'success', action: { label: 'Undo', onClick: () => store.undo() } });
+    toast(`Seated ${res.list.length}${res.leftover ? ` · ${res.leftover} still without a seat` : ''}${res.busFull ? ` (${res.busFull} because their bus is full)` : ''}`, { kind: res.leftover ? 'warn' : 'success', duration: res.busFull ? 6000 : 3200, action: { label: 'Undo', onClick: () => store.undo() } });
   }
 
   // ── live updates ──────────────────────────────────────────────────────────

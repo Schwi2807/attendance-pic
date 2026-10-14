@@ -8,7 +8,7 @@ import { toast, choiceDialog } from './dialogs.js';
 import { renderHero } from './hero.js';
 import { openResetDialog } from './reset-dialog.js';
 import { STATUS } from '../domain/model.js';
-import { initials, norm } from '../utils/format.js';
+import { initials, norm, stampText } from '../utils/format.js';
 import { maskId } from '../utils/mask.js';
 
 const FILTERS = [
@@ -28,7 +28,7 @@ const SORTS = [
 export function createAttendanceView(ctx) {
   const { store, admin } = ctx;
   const el = h('section', { class: 'view view-attendance', 'data-testid': 'attendance-view' });
-  const ui = { q: '', filter: 'all', sort: 'original' };
+  const ui = { q: '', filter: 'all', sort: 'original', bus: '' }; // bus: '' all · busId · '__none'
   const rows = new Map();
   let refs = null;
   let hasList = false;
@@ -43,7 +43,13 @@ export function createAttendanceView(ctx) {
       default: return true;
     }
   };
+  const matchesBus = (p) => {
+    if (!ui.bus) return true;
+    const b = store.busOf(p.id);
+    return ui.bus === '__none' ? !b : b === ui.bus;
+  };
   const matchesSearch = (p) => {
+    if (!matchesBus(p)) return false;
     if (!ui.q) return true;
     const seat = store.seatLabelOf(p.id);
     return p._search.includes(ui.q) || (seat && norm(seat.label) === ui.q);
@@ -75,6 +81,7 @@ export function createAttendanceView(ctx) {
         </div>
         <div class="att-controls">
           <label class="search">${icon('search')}<input type="search" data-testid="search" placeholder="Search name, ID or seat" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search"><button class="icon-btn clear" type="button" aria-label="Clear search" hidden>${icon('x')}</button></label>
+          <select class="select sort-select bus-filter" data-testid="bus-filter" aria-label="Bus"></select>
           <select class="select sort-select" data-testid="sort" aria-label="Sort">${SORTS.map((s) => `<option value="${s.id}">${s.label}</option>`).join('')}</select>
           <button class="btn btn-secondary undo-btn" data-testid="undo" type="button" disabled>${icon('undo')}<span class="lbl">Undo</span></button>
           <button class="btn btn-secondary more-btn" data-testid="att-more" type="button" aria-label="More actions">${icon('more')}</button>
@@ -90,9 +97,15 @@ export function createAttendanceView(ctx) {
       empty: el.querySelector('.list-empty'),
       search: el.querySelector('input[type=search]'),
       clear: el.querySelector('.search .clear'),
-      sort: el.querySelector('.sort-select'),
+      sort: el.querySelector('[data-testid=sort]'),
+      bus: el.querySelector('[data-testid=bus-filter]'),
       undo: el.querySelector('[data-testid=undo]'),
     };
+    fillBusFilter();
+    refs.bus.addEventListener('change', () => {
+      ui.bus = refs.bus.value;
+      applyList();
+    });
     refs.search.value = ui.q;
     refs.sort.value = ui.sort;
     const onSearch = debounce(() => {
@@ -164,17 +177,32 @@ export function createAttendanceView(ctx) {
     li.querySelector('[data-act=present]').setAttribute('aria-pressed', String(a.status === STATUS.PRESENT));
     li.querySelector('[data-act=absent]').setAttribute('aria-pressed', String(a.status === STATUS.ABSENT));
     const t = li.querySelector('.att-time');
-    t.textContent = a.time || '—';
+    const stamp = stampText(a, store.event?.date);
+    const cut = stamp.lastIndexOf(', ');
+    // "{date}, {HH:mm}" — the time is emphasised, the date sits quietly before it.
+    t.innerHTML = !stamp ? '—' : cut < 0 ? esc(stamp) : `<span class="att-date">${esc(stamp.slice(0, cut + 1))}</span> <span class="att-clock">${esc(stamp.slice(cut + 2))}</span>`;
     t.classList.toggle('is-empty', !a.time);
     li.querySelector('.id').textContent = store.settings.maskIds ? maskId(p.studentId) : p.studentId || '—';
     const seat = store.seatLabelOf(pid);
     const st = li.querySelector('.seat-tag');
-    st.classList.toggle('is-none', !seat);
-    st.innerHTML = seat ? `${icon('bus')}${esc(seat.bus)} · ${esc(seat.label)}` : 'No seat';
+    const groupBus = seat ? '' : store.busName(store.allocatedBusOf(pid));
+    st.classList.toggle('is-none', !seat && !groupBus);
+    st.classList.toggle('is-group', !seat && Boolean(groupBus));
+    st.innerHTML = seat ? `${icon('bus')}${esc(seat.bus)} · ${esc(seat.label)}` : groupBus ? `${icon('bus')}Bus ${esc(groupBus)}` : 'No seat';
     const rem = li.querySelector('.att-remark');
     rem.hidden = !a.remarks;
     rem.querySelector('.remark-text').textContent = a.remarks || '';
     li.querySelector('.remark-btn').classList.toggle('has-remark', Boolean(a.remarks));
+  }
+
+  /** Bus filter: All buses / each bus (seat or bus group) / No bus. */
+  function fillBusFilter() {
+    if (!refs?.bus) return;
+    const buses = [...store.buses].sort((a, b) => a.order - b.order);
+    if (ui.bus && ui.bus !== '__none' && !buses.some((b) => b.id === ui.bus)) ui.bus = '';
+    refs.bus.innerHTML = `<option value="">All buses</option>${buses.map((b) => `<option value="${esc(b.id)}">Bus ${esc(b.name)}</option>`).join('')}<option value="__none">No bus yet</option>`;
+    refs.bus.value = ui.bus;
+    refs.bus.hidden = buses.length === 0;
   }
 
   function visibleList() {
@@ -304,10 +332,11 @@ export function createAttendanceView(ctx) {
         const p = store.byId.get(d.pid);
         if (p && matchesFilter(p) && matchesSearch(p) && !rows.get(d.pid)?.isConnected) applyList();
       }
-    } else if (d.type === 'assignments' || d.type === 'buses' || d.type === 'seatTypes') {
+    } else if (d.type === 'assignments' || d.type === 'buses' || d.type === 'seatTypes' || d.type === 'allocations') {
+      if (d.type === 'buses') fillBusFilter();
       for (const pid of rows.keys()) updateRow(pid);
       updateCounts();
-      if (ui.filter === 'unseated' || ui.sort === 'seat') applyList();
+      if (ui.filter === 'unseated' || ui.sort === 'seat' || ui.bus) applyList();
     } else if (d.type === 'settings' && d.key === 'maskIds') {
       for (const pid of rows.keys()) updateRow(pid);
     } else if (d.type === 'event') {

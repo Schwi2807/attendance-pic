@@ -2,7 +2,9 @@
 //
 // Usable seats = total seats − Unavailable − Reserved − VIP.
 // Auto mode keeps the smallest number of buses (≥ 1) whose usable seats
-// cover every participant. New buses use the event's default template.
+// cover every participant who still needs a normal seat (people an admin
+// seated in a Reserved / VIP seat already have one). New buses use the
+// event's default template.
 
 import { enumerateSeats, normalizeConfig, seatCount } from './layout.js';
 
@@ -21,7 +23,20 @@ export function busStats(bus, seatTypes, assignments) {
       else stats.seated++;
     }
   }
+  // Everyone on board counts, including people an admin placed in a
+  // Reserved / VIP seat; those seats count as capacity once occupied.
+  stats.occupied = stats.seated + stats.seatedRestricted;
+  stats.capacity = stats.usable + stats.seatedRestricted;
   return stats;
+}
+
+/** "One — 38/38 seated · 1 VIP · 1 reserved · 2 unavailable" */
+export function busSummaryText(bus, s) {
+  const extras = [];
+  if (s.vip) extras.push(`${s.vip} VIP`);
+  if (s.reserved) extras.push(`${s.reserved} reserved`);
+  if (s.unavailable) extras.push(`${s.unavailable} unavailable`);
+  return `${bus.name} — ${s.occupied}/${s.capacity} seated${extras.length ? ` · ${extras.join(' · ')}` : ''}`;
 }
 
 export function usableSeats(bus, seatTypes) {

@@ -186,8 +186,11 @@
   display: flex; flex-direction: column; overflow: hidden;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-xl); box-shadow: var(--shadow-1);
 }
-.seat-panel-head { padding: 14px 14px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+.seat-panel-head { padding: 14px 14px 10px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .seat-panel-head h3 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.seat-panel-head h3 .badge { white-space: nowrap; }
+.seat-panel-head .row { gap: 8px; }
+.seat-panel-head [data-testid=select-mode] { flex: none; min-height: 44px; padding-inline: 12px; }
 .seat-panel .search { min-height: 44px; box-shadow: none; }
 .seat-panel .search input { height: 40px; }
 .panel-list { list-style: none; margin: 0; padding: 8px; overflow: auto; flex: 1; -webkit-overflow-scrolling: touch; }
@@ -207,6 +210,17 @@
 .person .seat-tag { font-size: 11.5px; }
 .person .p-phone { display: inline-flex; align-items: center; gap: 3px; color: var(--text-2); white-space: nowrap; }
 .person .p-phone .icon { width: 12px; height: 12px; }
+.person .seat-tag.is-group { background: transparent; border: 1.5px dashed var(--brand); color: var(--brand); }
+/* Select mode (bus groups) */
+.pick-box {
+  width: 24px; height: 24px; border-radius: 8px; flex: none; display: grid; place-items: center;
+  border: 2px solid var(--line-strong); background: var(--surface); color: transparent; transition: background 0.15s, border-color 0.15s;
+}
+.pick-box .icon { width: 15px; height: 15px; stroke-width: 3; }
+.person.is-picked { background: var(--brand-soft); }
+.person.is-picked .pick-box { background: var(--brand); border-color: var(--brand); color: #fff; }
+.panel-foot { display: grid; gap: 8px; padding: 10px 12px calc(10px + var(--safe-bottom)); border-top: 1px solid var(--line); background: var(--surface); }
+.panel-foot .row { gap: 6px; }
 .phone-chip {
   display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 2px 10px; border-radius: 99px;
   background: var(--brand-soft); color: var(--brand); font-weight: 600; font-size: 13.5px; text-decoration: none;
@@ -261,13 +275,15 @@
 .admin-only { display: none !important; }
 .is-admin .admin-only { display: inline-flex !important; }
 
+/* The People toggle and the panel's close button only exist while the panel is a slide-over (narrow / portrait). */
+.panel-toggle, .panel-close { display: none !important; }
 @media (max-width: 1000px) {
   .seat-layout { grid-template-columns: minmax(0, 1fr); }
   .seat-panel { position: fixed; z-index: 60; left: 12px; top: calc(var(--topbar-h) + var(--safe-top) + 10px); bottom: 12px; width: min(340px, calc(100vw - 24px)); max-height: none; transform: translateX(calc(-100% - 24px)); transition: transform 0.3s var(--ease); box-shadow: var(--shadow-3); }
   .seat-panel.is-open { transform: none; }
   .panel-toggle { display: inline-flex !important; }
+  .panel-close { display: inline-grid !important; margin: -8px -6px -8px auto; }
 }
-.panel-toggle { display: none !important; }
 
 /* Seat sheet */
 .seat-sheet-head { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 18px; background: var(--surface-2); border: 1px solid var(--line); }

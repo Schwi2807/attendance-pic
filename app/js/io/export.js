@@ -4,7 +4,7 @@
 
 import { getXLSX } from './vendor.js';
 import { STATUS } from '../domain/model.js';
-import { prettyDate } from '../utils/format.js';
+import { prettyDate, stampText } from '../utils/format.js';
 
 export const APP_COLUMNS = ['Present', 'Bus', 'Seat', 'Remarks', 'Check-in Time'];
 export const ABSENT_FILL = 'FDE2E2';
@@ -25,10 +25,10 @@ export function buildExportTable(store) {
     const cells = [
       ...original.map((h) => String(p.original?.[h] ?? (h === cols.name ? p.name : h === cols.id ? p.studentId : ''))),
       present,
-      seat?.bus || '',
+      seat?.bus || store.busName(store.allocatedBusOf(p.id)), // seat's bus, else the person's bus group
       seat?.label || '',
       a.remarks || '',
-      status === STATUS.PRESENT ? a.time || '' : '',
+      status === STATUS.PRESENT ? stampText(a, store.event.date) : '',
     ];
     return { cells, absent: status === STATUS.ABSENT, status };
   });

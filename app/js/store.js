@@ -182,7 +182,7 @@ export class Store extends EventTarget {
       const base = String(fileName || '').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
       event = createEvent({ name: base || 'New event', defaultTemplate: this.event?.defaultTemplate });
     }
-    const { participants, attendance, seatRequests, columns } = buildParticipants(table, mapping, event.id, event.activeSessionId);
+    const { participants, attendance, seatRequests, busRequests, columns } = buildParticipants(table, mapping, event.id, event.activeSessionId);
     event.columns = columns;
     event.importMeta = { fileName: fileName || '', importedAt: new Date().toISOString(), rows: participants.length };
 
@@ -210,6 +210,15 @@ export class Store extends EventTarget {
     if (list.length) {
       await this.save(() => this.repo.applyAssignments(this.sessionId, this.event.id, list));
       this.setAssignmentsFromRecords(await this.repo.getAssignments(this.sessionId));
+    }
+    // A Bus value without a seat (e.g. a re-imported export) restores the bus group.
+    const groups = busRequests
+      .map((r) => ({ r, bus: this.buses.find((b) => norm(b.name) === norm(r.bus) || norm(`bus ${b.name}`) === norm(r.bus)) }))
+      .filter((x) => x.bus);
+    if (groups.length) {
+      const records = groups.map(({ r, bus }) => ({ ...this.getAttendance(r.participantId), busId: bus.id }));
+      await this.save(() => this.repo.saveAttendanceMany(records));
+      for (const rec of records) this.attendance.set(rec.participantId, rec);
     }
     this.undoStack = [];
     this.emit('all');
@@ -371,12 +380,15 @@ export class Store extends EventTarget {
   capacity() {
     let total = 0;
     let usable = 0;
+    let inRestricted = 0;
     for (const b of this.buses) {
       const s = this.busStats(b);
       total += s.total;
       usable += s.usable;
+      inRestricted += s.seatedRestricted;
     }
-    return { total, usable, needed: this.participants.length };
+    // People already sitting in a Reserved / VIP seat do not need a usable seat.
+    return { total, usable, inRestricted, participants: this.participants.length, needed: Math.max(0, this.participants.length - inRestricted) };
   }
 
   /** Seat IDs that currently hold a passenger but would vanish under `predicate`. */
@@ -398,7 +410,7 @@ export class Store extends EventTarget {
     if (!this.event || this.event.busMode !== 'auto') return { changed: false };
     const plan = planAutoBuses({
       buses: this.buses,
-      participantCount: this.participants.length,
+      participantCount: this.capacity().needed,
       seatTypes: this.seatTypes,
       template: this.template,
     });
@@ -646,6 +658,16 @@ export class Store extends EventTarget {
     this.emit('assignments', { seatId, pid });
     const label = this.seatIndex.get(seatId).seat.label;
     this.pushUndo(`${old ? 'Moved' : 'Seated'} ${this.byId.get(pid)?.name} → ${label}`, () => this.restoreAssignments(before));
+    await this.afterRestrictedChange([seatId, old]);
+  }
+
+  /**
+   * Someone moving into / out of a Reserved or VIP seat changes how many
+   * usable seats are still needed, so the auto bus count may change.
+   */
+  async afterRestrictedChange(seatIds) {
+    const restricted = seatIds.filter(Boolean).some((id) => ['reserved', 'vip'].includes(this.seatTypeOf(id)));
+    if (restricted) await this.recomputeBuses();
   }
 
   async unassignSeat(seatId) {
@@ -657,6 +679,7 @@ export class Store extends EventTarget {
     this.seatOf.delete(pid);
     this.emit('assignments', { seatId, pid });
     this.pushUndo(`Unseated ${this.byId.get(pid)?.name}`, () => this.restoreAssignments(before));
+    await this.afterRestrictedChange([seatId]);
   }
 
   async swapSeats(seatA, seatB, { admin = false } = {}) {
@@ -679,6 +702,7 @@ export class Store extends EventTarget {
     this.emit('assignments');
     const n = (pid) => this.byId.get(pid)?.name || '';
     this.pushUndo(`Swapped ${n(a)} ⇄ ${n(b)}`, () => this.restoreAssignments(before));
+    await this.afterRestrictedChange([seatA, seatB]);
   }
 
   /** Seats in fill order: bus order, lower deck first, front to back, left to right. */
@@ -699,13 +723,124 @@ export class Store extends EventTarget {
       (p) => !this.seatOf.has(p.id) && !(skipAbsent && this.attendance.get(p.id)?.status === STATUS.ABSENT),
     );
     const free = this.orderedSeats().filter(({ seat }) => !this.assignments.has(seat.id) && this.seatTypeOf(seat.id) === 'available');
-    const n = Math.min(people.length, free.length);
-    return {
-      list: people.slice(0, n).map((p, i) => ({ seatId: free[i].seat.id, participantId: p.id })),
-      waiting: people.length,
-      freeSeats: free.length,
-      leftover: people.length - n,
+    const used = new Set();
+    const take = (pred) => {
+      const hit = free.find((f) => !used.has(f.seat.id) && pred(f));
+      if (hit) used.add(hit.seat.id);
+      return hit;
     };
+    const list = [];
+    let busFull = 0;
+    // 1) People with a bus group only go to seats on their bus.
+    for (const p of people) {
+      const busId = this.allocatedBusOf(p.id);
+      if (!busId) continue;
+      const hit = take((f) => f.bus.id === busId);
+      if (hit) list.push({ seatId: hit.seat.id, participantId: p.id });
+      else busFull++;
+    }
+    // 2) Everyone else fills the remaining seats, front to back.
+    for (const p of people) {
+      if (this.allocatedBusOf(p.id)) continue;
+      const hit = take(() => true);
+      if (hit) list.push({ seatId: hit.seat.id, participantId: p.id });
+    }
+    return { list, waiting: people.length, freeSeats: free.length, leftover: people.length - list.length, busFull };
+  }
+
+  // ── bus groups ────────────────────────────────────────────────────────────
+  // Which bus a person takes, decided before (or without) a seat. Stored on
+  // the person's attendance record for the session (`busId`). A seat always
+  // wins: once seated, the seat's bus is the person's bus.
+
+  busName(busId) {
+    return this.buses.find((b) => b.id === busId)?.name || '';
+  }
+
+  allocatedBusOf(pid) {
+    const id = this.attendance.get(pid)?.busId;
+    return id && this.buses.some((b) => b.id === id) ? id : '';
+  }
+
+  /** Seat's bus if seated, otherwise the bus group ('' = none). */
+  busOf(pid) {
+    const seatId = this.seatOf.get(pid);
+    return seatId ? this.seatIndex.get(seatId)?.bus.id || '' : this.allocatedBusOf(pid);
+  }
+
+  /** Free usable seats left on a bus once its seated people and its group are counted. */
+  busRoomLeft(busId, { ignore = new Set() } = {}) {
+    const bus = this.buses.find((b) => b.id === busId);
+    if (!bus) return 0;
+    const s = this.busStats(bus);
+    let grouped = 0;
+    for (const p of this.participants) {
+      if (!ignore.has(p.id) && !this.seatOf.has(p.id) && this.allocatedBusOf(p.id) === busId) grouped++;
+    }
+    return s.usable - s.seated - grouped;
+  }
+
+  /** Puts people in a bus group ('' = no bus). Undoable. */
+  async setBusGroup(pids, busId, label) {
+    const prevs = pids.map((pid) => ({ ...this.getAttendance(pid) }));
+    const nexts = prevs.map((a) => ({ ...a, busId: busId || '' }));
+    await this.saveGroupRecords(nexts);
+    this.pushUndo(label || (busId ? `Put ${pids.length} on bus ${this.busName(busId)}` : `Cleared the bus for ${pids.length}`), () => this.saveGroupRecords(prevs));
+  }
+
+  async saveGroupRecords(records) {
+    await this.save(() => this.repo.saveAttendanceMany(records));
+    for (const r of records) this.attendance.set(r.participantId, r);
+    this.emit('allocations', { pids: records.map((r) => r.participantId) });
+  }
+
+  /**
+   * Random bus groups, balanced so every bus ends up with about the same
+   * number of free seats. People who already have a seat keep their bus.
+   * @returns {{ plan: Map<string, string[]>, overflow: number }}
+   */
+  planRandomGroups(pids) {
+    const people = pids.filter((pid) => !this.seatOf.has(pid));
+    const ignore = new Set(people);
+    const buses = [...this.buses].sort((a, b) => a.order - b.order);
+    const room = new Map(buses.map((b) => [b.id, this.busRoomLeft(b.id, { ignore })]));
+    // Fisher–Yates shuffle with the platform's crypto RNG.
+    const order = [...people];
+    const rnd = new Uint32Array(order.length);
+    crypto.getRandomValues(rnd);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = rnd[i] % (i + 1);
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    const plan = new Map(buses.map((b) => [b.id, []]));
+    let overflow = 0;
+    for (const pid of order) {
+      // The bus with the most room left (ties → earlier bus).
+      let best = buses[0];
+      for (const b of buses) if (room.get(b.id) > room.get(best.id)) best = b;
+      if (room.get(best.id) <= 0) overflow++;
+      room.set(best.id, room.get(best.id) - 1);
+      plan.get(best.id).push(pid);
+    }
+    return { plan, overflow };
+  }
+
+  async randomBusGroups(pids) {
+    if (!this.buses.length) return { plan: new Map(), overflow: 0, count: 0 };
+    const { plan, overflow } = this.planRandomGroups(pids);
+    const records = [];
+    const prevs = [];
+    for (const [busId, list] of plan) {
+      for (const pid of list) {
+        const a = this.getAttendance(pid);
+        prevs.push({ ...a });
+        records.push({ ...a, busId });
+      }
+    }
+    if (!records.length) return { plan, overflow, count: 0 };
+    await this.saveGroupRecords(records);
+    this.pushUndo(`Randomly grouped ${records.length} people`, () => this.saveGroupRecords(prevs));
+    return { plan, overflow, count: records.length };
   }
 
   async autoFill(opts) {
